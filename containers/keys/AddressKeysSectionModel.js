@@ -5,7 +5,9 @@ import { STATUSES } from './KeysStatus';
 import { ACTIONS } from './KeysActions';
 
 const createConvertKey = ({ user, address, handlers }) => ({ decryptedPrivateKey, Key, info }, i) => {
-    const handleAction = (fn) => () => fn({ user, address, Key, info });
+    const isContactKey = !address;
+
+    const handleAction = (fn) => () => fn({ user, address, Key, info, decryptedPrivateKey, isContactKey });
 
     const { Flags } = Key;
     const { Status } = address || {};
@@ -14,7 +16,6 @@ const createConvertKey = ({ user, address, handlers }) => ({ decryptedPrivateKey
     const isDecrypted = !!decryptedPrivateKey;
     const isCompromised = isDecrypted && Flags > 0 && Flags < 3 && Status !== 0;
     const isSubUser = user.isSubUser;
-    const isContactKey = !address;
 
     const statuses = [
         isPrimary && STATUSES.PRIMARY,

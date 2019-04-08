@@ -150,6 +150,7 @@ export { default as RecoveryEmail } from './containers/notification/RecoveryEmai
 export { default as PasswordResetToggle } from './containers/notification/PasswordResetToggle';
 export { default as DailyNotificationsToggle } from './containers/notification/DailyNotificationsToggle';
 export { default as EmailSection } from './containers/notification/EmailSection';
+export { default as DecryptKeyModal } from './containers/keys/DecryptKeyModal';
 export { default as KeysActions } from './containers/keys/KeysActions';
 export { default as AddressKeysTable } from './containers/keys/AddressKeysTable';
 export { default as KeysRow } from './containers/keys/KeysRow';

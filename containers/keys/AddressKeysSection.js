@@ -1,16 +1,32 @@
-import React from 'react';
+import React, { useRef } from 'react';
+import { c } from 'ttag';
 
+import ReactivateKeyModal from './ReactivateKeyModal';
+import ExportKeyModal from './ExportKeyModal';
 import AddressKeysHeader from './AddressKeysHeader';
 import ContactKeysHeader from './ContactKeysHeader';
 import AddressKeysTable from './AddressKeysTable';
 import { getAddressesKeys, getUserAddressKeys } from './AddressKeysSectionModel';
+import usePrompts from '../../hooks/usePrompts';
+import useNotifications from '../../hooks/useNotifications';
+import useEventManager from '../../hooks/useEventManager';
 import useUserKeys from '../../models/userKeysModel';
 import useAddressesKeys from '../../models/addressesKeysModel';
 import { useUser } from '../../models/userModel';
 import { useAddresses } from '../../models/addressesModel';
+import useApi from '../../hooks/useApi';
 import { ACTIONS } from './KeysActions';
+import { getKeySalts } from 'proton-shared/lib/api/keys'
+import { KEY_FILE_EXTENSION } from 'proton-shared/lib/constants';
 
 const AddressKeysSection = () => {
+    const { createNotification } = useNotifications();
+    const { createPrompt } = usePrompts();
+    const { call } = useEventManager();
+    const api = useApi();
+
+    const keySaltRef = useRef();
+
     const [User] = useUser();
     const [Addresses, loadingAddresses] = useAddresses();
 
@@ -27,7 +43,7 @@ const AddressKeysSection = () => {
         console.log('import key', ...args);
     };
 
-    const handleReactivateKeys = (...args) => {
+    const handleReactivateKeys = async (...args) => {
         // eslint-disable-next-line
         console.log('reactivate key', ...args);
     };
@@ -37,9 +53,25 @@ const AddressKeysSection = () => {
         console.log('delete key', ...args);
     };
 
-    const handleExportKey = (...args) => {
-        // eslint-disable-next-line
-        console.log('export key', ...args);
+    const handleExportKey = async ({ user, address, info, decryptedPrivateKey, isContactKey }) => {
+        const { fingerprint } = info;
+        const filename = ['privatekey.', isContactKey ? user.name : address.Email, '-', fingerprint, KEY_FILE_EXTENSION].join('');
+
+        await createPrompt((resolve, reject) => {
+            return (
+                <ExportKeyModal
+                    decryptedPrivateKey={decryptedPrivateKey}
+                    filename={filename}
+                    onClose={reject}
+                    onSuccess={resolve}
+                />
+            );
+        });
+
+        createNotification({
+            text: c('Success').t`Private key exported`,
+            type: 'success'
+        });
     };
 
     const handleMakePrimaryKey = (...args) => {
@@ -57,9 +89,35 @@ const AddressKeysSection = () => {
         console.log('mark compromised key', ...args);
     };
 
-    const handleReactivateKey = (...args) => {
-        // eslint-disable-next-line
-        console.log('mark reactivate key', ...args);
+    const handleReactivateKey = async ({ user, address, Key, info }) => {
+        // setstate loading...
+
+        if (!keySaltRef.current) {
+            keySaltRef.current = api(getKeySalts()).then(({ KeySalts }) => KeySalts);
+        }
+
+        const { KeySalt } = (await keySaltRef.current).find(({ ID }) => ID === Key.ID);
+
+        const decryptedKey = await createPrompt((resolve, reject) => {
+            return (
+                <ReactivateKeyModal
+                    keyInfo={info}
+                    keyData={Key}
+                    keySalt={KeySalt}
+                    onClose={reject}
+                    onSuccess={(decryptedKey) => resolve(decryptedKey)}
+                />
+            );
+        });
+
+        // manage decrypted key
+
+        //await call();
+
+        createNotification({
+            text: c('Success').t`Private key reactivated`,
+            type: 'success'
+        });
     };
 
     const handleMarkValidKey = (...args) => {
