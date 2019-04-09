@@ -7,7 +7,7 @@ import { parseArmoredKeys, findArmoredKey } from 'proton-shared/lib/keys/keyImpo
 import { decryptPrivateKey } from 'pmcrypto';
 import { computeKeyPassword } from 'pm-srp';
 
-import { generateUID } from '../../helpers/component';
+import { generateUID } from '../../../helpers/component';
 
 const PASSWORD_KEY_STATE = 1;
 const BACKUP_KEY_STATE = 2;
@@ -45,7 +45,7 @@ const ReactivateKeyModal = ({ keyInfo, keyData, keySalt, onClose, onSuccess }) =
         const files = Array.from(target.files);
         const filesAsStrings = await Promise.all(files.map(readFileAsString)).catch(() => []);
 
-        const armoredKeys = parseArmoredKeys((filesAsStrings).join('\n'));
+        const armoredKeys = parseArmoredKeys(filesAsStrings.join('\n'));
         if (!armoredKeys.length) {
             createNotification({
                 text: c('Error').t`Invalid private key file`,
@@ -82,7 +82,7 @@ const ReactivateKeyModal = ({ keyInfo, keyData, keySalt, onClose, onSuccess }) =
     /* TODO: Fix custom file upload properly */
     const uploadBackupKey = state === PASSWORD_KEY_STATE ? (
             <label htmlFor={fileId}>
-                <input id={fileId} type="file" onChange={handleFileImport} accept=".txt,.asc" style={({display: 'none'})} />
+                <input id={fileId} type="file" onChange={handleFileImport} accept=".txt,.asc" multiple style={({display: 'none'})} />
                 <span className='pm-button'>{c('Label').t`Upload backup key`}</span>
             </label>
     ) : null;

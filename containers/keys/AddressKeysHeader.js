@@ -3,8 +3,34 @@ import { c } from 'ttag';
 import PropTypes from 'prop-types';
 import { SubTitle, Alert, Block, PrimaryButton, Button } from 'react-components';
 
-const AddressKeysHeader = ({ handleAddKey, handleImportKey, handleReactivateKeys }) => {
+export const ACTIONS = {
+    ADD: 1,
+    IMPORT: 2,
+    REACTIVATE_ALL: 3
+};
+
+const KeyActionAdd = (cb) => (
+    <PrimaryButton key={ACTIONS.IMPORT} onClick={cb}>{c('Action').t`Add new key`}</PrimaryButton>
+);
+
+const KeyActionImport = (cb) => (
+    <Button key={ACTIONS.ADD} onClick={cb}>{c('Action').t`Import key`}</Button>
+);
+
+const KeyActionReactivateAll = (cb, { keysToReactivate }) => (
+    <Button key={ACTIONS.REACTIVATE_ALL} onClick={cb}>{c('Action').t`Reactivate keys`} ({keysToReactivate.length})</Button>
+);
+
+const ACTIONS_TO_COMPONENT = {
+    [ACTIONS.ADD]: KeyActionAdd,
+    [ACTIONS.IMPORT]: KeyActionImport,
+    [ACTIONS.REACTIVATE_ALL]: KeyActionReactivateAll,
+};
+
+const AddressKeysHeader = ({ actions = [] }) => {
     const title = c('Title').t`Email Encryption Keys`;
+
+    const actionsList = actions.map(({ action, cb, ...rest }) => ACTIONS_TO_COMPONENT[action](cb, rest));
 
     return (
         <>
@@ -13,19 +39,17 @@ const AddressKeysHeader = ({ handleAddKey, handleImportKey, handleReactivateKeys
                 {c('Info')
                     .t`Download your PGP Keys for use with other PGP compatible services. Only incoming messages in inline OpenPGP format are currently supported.`}
             </Alert>
-            <Block>
-                <PrimaryButton onClick={handleAddKey}>{c('Action').t`Add new key`}</PrimaryButton>
-                <Button onClick={handleImportKey}>{c('Action').t`Import key`}</Button>
-                <Button onClick={handleReactivateKeys}>{c('Action').t`Reactivate keys`}</Button>
-            </Block>
+            {actionsList.length ? (
+                <Block>
+                    {actionsList}
+                </Block>
+            ): null }
         </>
     );
 };
 
 AddressKeysHeader.propTypes = {
-    handleAddKey: PropTypes.func.isRequired,
-    handleImportKey: PropTypes.func.isRequired,
-    handleReactivateKeys: PropTypes.func.isRequired
+    actions: PropTypes.array.isRequired,
 };
 
 export default AddressKeysHeader;

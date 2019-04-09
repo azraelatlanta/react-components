@@ -1,14 +1,23 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { c } from 'ttag';
-import { useNotifications, Modal, ContentModal, Row, Label, Password, FooterModal, ResetButton, PrimaryButton } from 'react-components';
+import {
+    useNotifications,
+    Modal,
+    ContentDivModal,
+    Row,
+    Label,
+    Password,
+    FooterModal,
+    ResetButton,
+    PrimaryButton
+} from 'react-components';
 import { decryptPrivateKey } from 'pmcrypto';
 
-import { generateUID } from '../../helpers/component';
+import { generateUID } from '../../../helpers/component';
 
-const DecryptKeyModal = ({ fingerprint, armoredKey, onSuccess, onClose }) => {
+const DecryptKeyModal = ({ title, fingerprint, armoredKey, onSuccess, onClose }) => {
     const { createNotification } = useNotifications();
-
     const [keyPassword, setKeyPassword] = useState('');
 
     const id = generateUID('decryptKey');
@@ -26,20 +35,19 @@ const DecryptKeyModal = ({ fingerprint, armoredKey, onSuccess, onClose }) => {
         }
     };
 
-    const title = c('Title').t`Reactivate key`;
-
     return (
         <Modal show={true} onClose={onClose} title={title} type="small">
-            <ContentModal onSubmit={handleSubmit} onReset={onClose}>
+            <ContentDivModal>
                 <Row>
-                    <Label htmlFor={id}>{c('Label').t`Enter the password for key with fingerprint:`} <code>{fingerprint}</code></Label>
-                    <Password id={id} value={keyPassword} onChange={handleChange} autoFocus={true} required />
+                    <Label htmlFor={id}>{c('Label').t`Enter the password for key with fingerprint:`}
+                        <code>{fingerprint}</code></Label>
+                    <Password id={id} value={keyPassword} onChange={handleChange} autoFocus={true} required/>
                 </Row>
                 <FooterModal>
                     <ResetButton>{c('Label').t`Cancel`}</ResetButton>
-                    <PrimaryButton type="submit">{c('Label').t`Submit`}</PrimaryButton>
+                    <PrimaryButton onClick={handleSubmit}>{c('Label').t`Submit`}</PrimaryButton>
                 </FooterModal>
-            </ContentModal>
+            </ContentDivModal>
         </Modal>
     );
 };
@@ -48,7 +56,8 @@ DecryptKeyModal.propTypes = {
     onSuccess: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired,
     fingerprint: PropTypes.string.isRequired,
-    armoredKey: PropTypes.string.isRequired
+    armoredKey: PropTypes.string.isRequired,
+    title: PropTypes.string.isRequired
 };
 
 export default DecryptKeyModal;
