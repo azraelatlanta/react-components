@@ -1,24 +1,18 @@
 import React, { useRef, useState } from 'react';
 import { c } from 'ttag';
-import { generateKey, keyInfo as getKeyInfo } from 'pmcrypto';
 import { getKeySalts } from 'proton-shared/lib/api/keys';
 import { KEY_FILE_EXTENSION } from 'proton-shared/lib/constants';
-import { algorithmExists } from 'proton-shared/lib/keys/keyGeneration';
 
-import GeneratingModal from './modals/GeneratingModal';
-import SimilarKeyModalWarning from './modals/SimilarKeyWarningModal';
-import SelectEncryptionModal from './modals/SelectEncryptionModal';
-import ReactivateKeyModal from './modals/ReactivateKeyModal';
-import ImportKeyModal from './modals/ImportKeyModal';
-import SelectAddressModal from './modals/SelectAddressModal';
-import ExportKeyModal from './modals/ExportKeyModal';
+import AddKeyModal from './addKey/AddKeyModal';
+import ImportKeyModal from './importKeys/ImportKeyModal';
+import ReactivateKeyModal2 from './reactivateKey/ReactivateKeyModal';
+import ExportKeyModal from './exportKey/ExportKeyModal';
 
 import AddressKeysHeader from './AddressKeysHeader';
 import ContactKeysHeader from './ContactKeysHeader';
 import AddressKeysTable from './AddressKeysTable';
-import { getAddressesKeys, getUserAddressKeys, getHeaderActions } from './AddressKeysSectionModel';
+import { getAddressesKeys, getUserKeys, getHeaderActions } from './AddressKeysSectionModel';
 import usePrompts from '../../hooks/usePrompts';
-import useAuthenticationStore from '../../hooks/useAuthenticationStore';
 import useNotifications from '../../hooks/useNotifications';
 import useEventManager from '../../hooks/useEventManager';
 import useUserKeys from '../../models/userKeysModel';
@@ -32,7 +26,6 @@ import { ACTIONS as HEADER_ACTIONS } from './AddressKeysHeader';
 const AddressKeysSection = () => {
     const { createNotification } = useNotifications();
     const { createPrompt } = usePrompts();
-    const authenticationStore = useAuthenticationStore();
     const [loading, setLoading] = useState(loading);
     const { call } = useEventManager();
     const api = useApi();
@@ -45,110 +38,38 @@ const AddressKeysSection = () => {
     const [userKeys, loadingUserKeys] = useUserKeys(User);
     const [addressesKeys, loadingAddressesKeys] = useAddressesKeys(User, Addresses);
 
-    const handleAddKey = async (...args) => {
-        // eslint-disable-next-line
-        console.log('add key', ...args);
-
-        if (Addresses.length === 0) {
-            throw new Error('No addresses to add a key to');
-        }
-
-        const address = Addresses.length === 1 ? Addresses[0] : await createPrompt((resolve, reject) => {
+    const handleAddKey = async ({ Addresses, addressesKeys }) => {
+        await createPrompt((resolve, reject) => {
             return (
-                <SelectAddressModal
+                <AddKeyModal
+                    onSuccess={resolve}
+                    onClose={reject}
                     Addresses={Addresses}
-                    onClose={reject}
-                    onSuccess={resolve}
-                />);
-        });
-
-        const email = address.Email;
-
-        const { config: encryptionConfig } = await createPrompt((resolve, reject) => {
-            return (
-                <SelectEncryptionModal
-                    title={c('Title').t`New address key (${email})`}
-                    onClose={reject}
-                    onSuccess={resolve}
+                    addressesKeys={addressesKeys}
                 />
             );
         });
-
-        const addressKeys = Object.values(addressesKeys[address.ID]);
-        const keyInfos = addressKeys.map(({ info }) => info);
-        if (algorithmExists(keyInfos, encryptionConfig)) {
-            await createPrompt((resolve, reject) => {
-                return (
-                    <SimilarKeyModalWarning onClose={reject} onSuccess={resolve}/>
-                );
-            });
-        }
-
-        const generate = () => generateKey({
-            // TODO: Use the user name?
-            userIds: [{ name, email }],
-            email,
-            passphrase: authenticationStore.getPassword(),
-            ...encryptionConfig
-        });
-
-        const { key: decryptedKey, privateKeyArmored } = await createPrompt((resolve, reject) => {
-            return (
-                <GeneratingModal
-                    title={c('Title').t`Generating key for (${email})`}
-                    generate={generate}
-                    onClose={reject}
-                    onSuccess={resolve}
-                />
-            );
-        });
-
-        console.log(await getKeyInfo(privateKeyArmored));
-
-        console.log(decryptedKey, privateKeyArmored);
-
-        // manage decrypted key
-
-        //await call();
 
         createNotification({
-            text: c('Success').t`Private key added for ${email}`,
+            text: c('Success').t`Private key added`,
             type: 'success'
         });
     };
 
-    const handleImportKey = async (...args) => {
-        // eslint-disable-next-line
-        console.log('import key', ...args);
-
-        if (Addresses.length === 0) {
-            throw new Error('No addresses to add a key to');
-        }
-
-        const address = Addresses.length === 1 ? Addresses[0] :
-            await createPrompt((resolve, reject) => {
-                return (
-                    <SelectAddressModal
-                        Addresses={Addresses}
-                        onClose={reject}
-                        onSuccess={resolve}
-                    />
-                );
-            });
-
-        const decryptedKeys = await createPrompt((resolve, reject) => {
+    const handleImportKey = async ({ Addresses, addressesKeys }) => {
+        await createPrompt((resolve, reject) => {
             return (
                 <ImportKeyModal
-                    onClose={reject}
                     onSuccess={resolve}
+                    onClose={reject}
+                    Addresses={Addresses}
+                    addressesKeys={addressesKeys}
                 />
             );
         });
 
-        console.log(decryptedKeys);
-
         createNotification({
-            text: c('Success').t`Private keys imported`,
+            text: c('Success').t`Private key added`,
             type: 'success'
         });
     };
@@ -163,9 +84,9 @@ const AddressKeysSection = () => {
         console.log('delete key', ...args);
     };
 
-    const handleExportKey = async ({ user, address, info, decryptedPrivateKey, isContactKey }) => {
+    const handleExportKey = async ({ User, Address, isAddressKey, info, decryptedPrivateKey }) => {
         const { fingerprint } = info;
-        const filename = ['privatekey.', isContactKey ? user.name : address.Email, '-', fingerprint, KEY_FILE_EXTENSION].join('');
+        const filename = ['privatekey.', isAddressKey ? Address.Email : User.name, '-', fingerprint, KEY_FILE_EXTENSION].join('');
 
         await createPrompt((resolve, reject) => {
             return (
@@ -199,33 +120,24 @@ const AddressKeysSection = () => {
         console.log('mark compromised key', ...args);
     };
 
-    const handleReactivateKey = async ({ user, address, Key, info }) => {
+    const handleReactivateKey = async ({ User, Address, addressesKeys, userKeys, isAddressKey, Key, info }) => {
         if (!keySaltRef.current) {
             keySaltRef.current = api(getKeySalts()).then(({ KeySalts }) => KeySalts);
         }
 
         const { KeySalt } = (await keySaltRef.current).find(({ ID }) => ID === Key.ID);
 
-        const decryptedKey = await createPrompt((resolve, reject) => {
+        return createPrompt((resolve, reject) => {
             return (
                 <ReactivateKeyModal
                     keyInfo={info}
                     keyData={Key}
                     keySalt={KeySalt}
+                    isAddressKey={isAddressKey}
                     onClose={reject}
                     onSuccess={resolve}
                 />
             );
-        });
-
-        console.log(decryptedKey);
-        // manage decrypted key
-
-        //await call();
-
-        createNotification({
-            text: c('Success').t`Private key reactivated`,
-            type: 'success'
         });
     };
 
@@ -265,8 +177,8 @@ const AddressKeysSection = () => {
     };
 
     const keysActionHandler = createActionHandler(keysHandlers);
-    const formattedAdressesKeys = getAddressesKeys(User, Addresses, addressesKeys, keysActionHandler);
-    const formattedUserKeys = getUserAddressKeys(User, userKeys, keysActionHandler);
+    const formattedAdressesKeys = getAddressesKeys({ User, Addresses, addressesKeys, handler: keysActionHandler });
+    const formattedUserKeys = getUserKeys({ User, userKeys, handler: keysActionHandler });
 
     const headerActions = getHeaderActions({
         handler: createActionHandler(headerHandlers),

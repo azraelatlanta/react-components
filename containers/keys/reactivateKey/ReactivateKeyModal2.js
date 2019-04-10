@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { c } from 'ttag';
-import { useNotifications, Modal, ContentModal, Row, Label, Password, FooterModal, ResetButton, PrimaryButton } from 'react-components';
+import { useNotifications, Modal, ContentModal, Row, Label, PasswordInput, FooterModal, ResetButton, PrimaryButton } from 'react-components';
 import { readFileAsString } from 'proton-shared/lib/helpers/fileHelper';
 import { parseArmoredKeys, findArmoredKey } from 'proton-shared/lib/keys/keyImport';
 import { decryptPrivateKey } from 'pmcrypto';
@@ -12,7 +12,7 @@ import { generateUID } from '../../../helpers/component';
 const PASSWORD_KEY_STATE = 1;
 const BACKUP_KEY_STATE = 2;
 
-const ReactivateKeyModal = ({ keyInfo, keyData, keySalt, onClose, onSuccess }) => {
+const ReactivateKeyModal2 = ({ keyInfo, keyData, keySalt, onClose, onSuccess }) => {
     const { fingerprint } = keyInfo;
     const { PrivateKey } = keyData;
 
@@ -92,7 +92,7 @@ const ReactivateKeyModal = ({ keyInfo, keyData, keySalt, onClose, onSuccess }) =
             <ContentModal onSubmit={handleSubmit} onReset={onClose}>
                 <Row>
                     <Label htmlFor={id}>{label}</Label>
-                    <Password id={id} value={password} onChange={handleChange} autoFocus={true} required />
+                    <PasswordInput id={id} value={password} onChange={handleChange} autoFocus={true} required />
                 </Row>
                 <FooterModal>
                     <ResetButton>{c('Label').t`Cancel`}</ResetButton>
@@ -104,11 +104,11 @@ const ReactivateKeyModal = ({ keyInfo, keyData, keySalt, onClose, onSuccess }) =
     );
 };
 
-ReactivateKeyModal.propTypes = {
+ReactivateKeyModal2.propTypes = {
     onSuccess: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired,
     keyData: PropTypes.object.isRequired,
     keySalt: PropTypes.string,
     keyInfo: PropTypes.object.isRequired
 };
-export default ReactivateKeyModal;
+export default ReactivateKeyModal2;

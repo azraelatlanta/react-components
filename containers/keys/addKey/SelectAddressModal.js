@@ -8,6 +8,7 @@ import {
     ContentModal,
     Row,
     FooterModal,
+    Label,
     ResetButton,
     PrimaryButton
 } from 'react-components';
@@ -27,12 +28,16 @@ const SelectAddressModal = ({ Addresses, onClose, onSuccess }) => {
         value: i
     }));
 
+    const selectId = 'select-address';
+
     return (
         <Modal show={true} onClose={onClose} title={title} type="small">
             <ContentModal onSubmit={handleSubmit} onReset={onClose}>
                 <Alert>{notificationText}</Alert>
                 <Row>
+                    <Label htmlFor={selectId}>{title}</Label>
                     <Select
+                        id={selectId}
                         value={addressIndex}
                         options={options}
                         onChange={({ target }) => setAddressIndex(target.value)}

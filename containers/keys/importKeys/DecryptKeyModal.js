@@ -7,7 +7,7 @@ import {
     ContentDivModal,
     Row,
     Label,
-    Password,
+    PasswordInput,
     FooterModal,
     ResetButton,
     PrimaryButton
@@ -41,7 +41,7 @@ const DecryptKeyModal = ({ title, fingerprint, armoredKey, onSuccess, onClose })
                 <Row>
                     <Label htmlFor={id}>{c('Label').t`Enter the password for key with fingerprint:`}
                         <code>{fingerprint}</code></Label>
-                    <Password id={id} value={keyPassword} onChange={handleChange} autoFocus={true} required/>
+                    <PasswordInput id={id} value={keyPassword} onChange={handleChange} autoFocus={true} required/>
                 </Row>
                 <FooterModal>
                     <ResetButton>{c('Label').t`Cancel`}</ResetButton>

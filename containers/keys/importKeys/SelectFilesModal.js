@@ -1,22 +1,17 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { c } from 'ttag';
-import { Alert, Modal, ContentDivModal, FooterModal, ResetButton, PrimaryButton, useNotifications, usePrompts } from 'react-components';
+import { SelectFilesInput, useNotifications, usePrompts } from 'react-components';
 import { readFileAsString } from 'proton-shared/lib/helpers/fileHelper';
 import { parseArmoredKeys } from 'proton-shared/lib/keys/keyImport';
 import DecryptKeyModal from './DecryptKeyModal';
 import { keyInfo as getKeyInfo, getKeys } from 'pmcrypto';
 
-import { generateUID } from '../../../helpers/component';
-
-const ImportKeyModal = ({ onClose, onSuccess }) => {
+const SelectFilesModal = ({ onClose, onSuccess }) => {
     const { createNotification } = useNotifications();
     const { createPrompt } = usePrompts();
 
-    const fileId = generateUID('importKey');
-
-    const handleFileImport = async ({ target }) => {
-        const files = Array.from(target.files);
+    const handleFileImport = async (files = []) => {
         const filesAsStrings = await Promise.all(files.map(readFileAsString)).catch(() => []);
 
         const armoredKeys = parseArmoredKeys(filesAsStrings.join('\n'));
@@ -25,7 +20,7 @@ const ImportKeyModal = ({ onClose, onSuccess }) => {
                 text: c('Error').t`Invalid private key file`,
                 type: 'error'
             });
-            return;
+            return onClose();
         }
 
         const keys = [];
@@ -62,27 +57,18 @@ const ImportKeyModal = ({ onClose, onSuccess }) => {
         return onSuccess(keys);
     };
 
-    const title = c('Title').t`Import key`;
-    const notificationText = c('Alert').t`Are you sure you want to import a private key? Importing an insecurely generated or leaked private key can harm the security of your emails.`;
-
     return (
-        <Modal show={true} onClose={onClose} title={title} type='small'>
-            <ContentDivModal>
-                <Alert>{notificationText}</Alert>
-                <FooterModal>
-                    <ResetButton onClick={onClose}>{c('Label').t`Cancel`}</ResetButton>
-                    <label htmlFor={fileId}>
-                        <input id={fileId} type='file' onChange={handleFileImport} accept='.txt,.asc' multiple style={({display: 'none'})} />
-                        <span className='pm-button--primary'>{c('Label').t`Confirm`}</span>
-                    </label>
-                </FooterModal>
-            </ContentDivModal>
-        </Modal>
+        <SelectFilesInput
+            accept='.txt,.asc'
+            multiple={true}
+            onSuccess={handleFileImport}
+            onClose={onClose}
+        />
     );
 };
 
-ImportKeyModal.propTypes = {
+SelectFilesModal.propTypes = {
     onSuccess: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired
 };
-export default ImportKeyModal;
+export default SelectFilesModal;

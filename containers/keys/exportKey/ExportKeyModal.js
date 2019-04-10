@@ -7,7 +7,7 @@ import {
     ContentDivModal,
     Row,
     Label,
-    Password,
+    PasswordInput,
     FooterModal,
     ResetButton,
     PrimaryButton
@@ -41,7 +41,7 @@ const ExportKeyModal = ({ filename, decryptedPrivateKey, onClose, onSuccess }) =
                 <Alert>{notificationText}</Alert>
                 <Row>
                     <Label htmlFor={id}>{label}</Label>
-                    <Password id={id} value={password} onChange={handleChange} autoFocus={true} required/>
+                    <PasswordInput id={id} value={password} onChange={handleChange} autoFocus={true} required/>
                 </Row>
                 <FooterModal>
                     <ResetButton>{c('Label').t`Cancel`}</ResetButton>

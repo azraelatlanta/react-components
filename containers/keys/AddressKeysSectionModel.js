@@ -5,26 +5,25 @@ import { STATUSES } from './KeysStatus';
 import { ACTIONS } from './KeysActions';
 import { ACTIONS as HEADER_ACTIONS } from './AddressKeysHeader';
 
-const createConvertKey = ({ user, address, handler }) => ({ decryptedPrivateKey, Key, info }, i) => {
-    const isAddressKey = !!address;
-
+const createKeyConverter = ({ User, Addresses, Address, isAddressKey, handler }) => ({ decryptedPrivateKey, Key, info }, i) => {
     const handleAction = (action) => () => handler({
         action,
-        user,
-        address,
+        isAddressKey,
+        User,
+        Address,
+        Addresses,
         Key,
         info,
         decryptedPrivateKey,
-        isAddressKey
     });
 
     const { Flags } = Key;
-    const { Status } = address || {};
+    const { Status } = Address || {};
 
     const isPrimary = i === 0;
     const isDecrypted = !!decryptedPrivateKey;
     const isCompromised = isDecrypted && Flags > 0 && Flags < 3 && Status !== 0;
-    const isSubUser = user.isSubUser;
+    const isSubUser = User.isSubUser;
 
     const statuses = [
         isPrimary && STATUSES.PRIMARY,
@@ -37,10 +36,10 @@ const createConvertKey = ({ user, address, handler }) => ({ decryptedPrivateKey,
 
     const canExport = !isSubUser && isDecrypted;
     const canReactivate = !isDecrypted;
-    const canDelete = !isPrimary && !isAddressKey;
+    const canDelete = !isPrimary && isAddressKey;
     const canMakePrimary = !isPrimary && isDecrypted && Flags === 3 && Status !== 0;
 
-    const canMark = !isAddressKey;
+    const canMark = isAddressKey;
     // TODO: There is one MARK OBSOLETE case to investigate when Flags === 0 for addresses
     const canMarkObsolete = canMark && Flags > 1 && Status !== 0;
     const canMarkCompromised = canMark && Flags !== 0;
@@ -86,37 +85,53 @@ const getKeysList = (keys = {}, convertKey) => {
         .map(convertKey);
 };
 
-export const getAddressesKeys = (user = {}, addresses = [], keys = {}, handler) => {
-    return addresses.reduce((acc, address) => {
-        const addressKeys = getKeysList(keys[address.ID], createConvertKey({ user, address, handler }));
-        if (!addressKeys.length) {
+export const getAddressesKeys = ({ User, Addresses = [], addressesKeys = {}, handler }) => {
+    return Addresses.reduce((acc, Address) => {
+        const keyConverter = createKeyConverter({
+            handler,
+            User,
+            Address,
+            Addresses,
+            addressesKeys,
+            isAddressKey: true
+        });
+
+        const { ID, Email } = Address;
+        const addressKeysList = getKeysList(addressesKeys[ID], keyConverter);
+        if (!addressKeysList.length) {
             return acc;
         }
 
         // TODO: Relies on the stable insertion order in ES2015. Verify this.
-        const primaryKey = addressKeys[0];
+        const primaryKey = addressKeysList[0];
         acc.push({
-            email: address.Email,
+            email: Email,
             ...primaryKey,
-            keys: addressKeys
+            keys: addressKeysList
         });
 
         return acc;
     }, []);
 };
 
-export const getUserAddressKeys = (user = {}, keys = {}, handler) => {
-    const userKeys = getKeysList(keys, createConvertKey({ user, handler }));
-    if (!userKeys.length) {
+export const getUserKeys = ({ User = {}, userKeys = {}, handler }) => {
+    const keyConverter = createKeyConverter({
+        User,
+        userKeys,
+        handler,
+        isAddressKey: false
+    });
+    const userKeysList = getKeysList(userKeys, keyConverter);
+    if (!userKeysList.length) {
         return [];
     }
     // TODO: Relies on the stable insertion order in ES2015. Verify this.
-    const primaryKey = userKeys[0];
+    const primaryKey = userKeysList[0];
     return [
         {
-            email: user.Name,
+            email: User.Name,
             ...primaryKey,
-            keys: userKeys
+            keys: userKeysList
         }
     ];
 };
@@ -126,15 +141,7 @@ const getKeysToReactivate = (keys = {}) => {
     return getKeysList(keys, id).filter(({ decryptedPrivateKey }) => !decryptedPrivateKey);
 };
 
-export const getHeaderActions = ({
-    handler,
-    User,
-    Addresses = [],
-    userKeys = {},
-    addressesKeys = {}
-}) => {
-    const canAddKey = true;
-
+const getAllKeysToReactivate = ({ Addresses, addressesKeys, userKeys }) => {
     const allAddressesKeys = Addresses.reduce((acc, { ID }) => {
         return acc.concat(getKeysToReactivate(addressesKeys[ID]));
     }, []);
@@ -143,22 +150,42 @@ export const getHeaderActions = ({
 
     const hasKeysToReactivate = !!keysToReactivate.length;
 
+    if (!hasKeysToReactivate) {
+        return [];
+    }
+
+    return keysToReactivate;
+};
+
+export const getHeaderActions = ({
+    handler,
+    Addresses = [],
+    User = {},
+    userKeys = {},
+    addressesKeys = {}
+}) => {
+    const canAddKey = true;
+
+    const createCb = ({ action, ...rest }) => () => handler({
+        action,
+        ...rest,
+        User,
+        Addresses,
+        addressesKeys,
+        userKeys
+    });
+
+    const keysToReactivate = getAllKeysToReactivate({ Addresses, User, addressesKeys, userKeys });
+
     const headerActions = [
         canAddKey && { action: HEADER_ACTIONS.ADD },
         canAddKey && { action: HEADER_ACTIONS.IMPORT },
-        hasKeysToReactivate && {
-            action: HEADER_ACTIONS.REACTIVATE_ALL,
-            keysToReactivate,
-            User,
-            Addresses,
-            userKeys,
-            addressesKeys
-        }
+        keysToReactivate.length && { action: HEADER_ACTIONS.REACTIVATE_ALL, keysToReactivate }
     ].filter(Boolean);
 
     return headerActions.map(({ action, ...rest }) => ({
         action,
         ...rest,
-        cb: () => handler({ action, ...rest })
+        cb: createCb({ action, ...rest })
     }));
 };

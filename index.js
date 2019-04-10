@@ -215,6 +215,7 @@ export { default as RemoteToggle } from './containers/messages/RemoteToggle';
 export { default as EmbeddedToggle } from './containers/messages/EmbeddedToggle';
 export { default as MessagesSection } from './containers/messages/MessagesSection';
 export { default as NotificationsContext } from './context/notifications';
+export { default as SelectFilesInput } from './components/file/SelectFilesInput';
 export { default as AuthenticationStoreContext } from './context/authenticationStore';
 export { default as ConfigContext } from './context/config';
 export { default as ApiContext } from './context/api';
