@@ -12,15 +12,14 @@ import SelectEncryptionModal from './SelectEncryptionModal';
 import SimilarKeyWarningModal from './SimilarKeyWarningModal';
 import GeneratingModal from './GeneratingModal';
 
-const AddKeyModal = ({ onSuccess, onClose, ...rest }) => {
-    const [state, dispatch] = useReducer(reducer, getInitialState(rest));
+const AddKeyModalProcess = ({ onSuccess, onClose, Addresses, addressesKeys }) => {
+    const [state, dispatch] = useReducer(reducer, getInitialState({ Addresses, addressesKeys }));
     const authenticationStore = useAuthenticationStore();
     const { createNotification } = useNotifications();
 
     const handleCancel = () => onClose();
 
     const {
-        Addresses,
         address,
         addressKeys,
         encryptionConfig,
@@ -106,11 +105,11 @@ const AddKeyModal = ({ onSuccess, onClose, ...rest }) => {
     )
 };
 
-AddKeyModal.propTypes = {
+AddKeyModalProcess.propTypes = {
     onSuccess: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired,
     Addresses: PropTypes.array.isRequired,
     addressesKeys: PropTypes.object.isRequired,
 };
 
-export default AddKeyModal;
+export default AddKeyModalProcess;

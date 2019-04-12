@@ -44,7 +44,7 @@ const DecryptKeyModal = ({ title, fingerprint, armoredKey, onSuccess, onClose })
                     <PasswordInput id={id} value={keyPassword} onChange={handleChange} autoFocus={true} required/>
                 </Row>
                 <FooterModal>
-                    <ResetButton>{c('Label').t`Cancel`}</ResetButton>
+                    <ResetButton onClick={onClose}>{c('Label').t`Cancel`}</ResetButton>
                     <PrimaryButton onClick={handleSubmit}>{c('Label').t`Submit`}</PrimaryButton>
                 </FooterModal>
             </ContentDivModal>

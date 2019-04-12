@@ -66,7 +66,7 @@ const SelectEncryptionModal = ({ title, onSuccess, onClose }) => {
                 )}
                 {warning}
                 <FooterModal>
-                    <ResetButton>{c('Label').t`Cancel`}</ResetButton>
+                    <ResetButton onClick={onClose}>{c('Label').t`Cancel`}</ResetButton>
                     <PrimaryButton type="submit">{c('Label').t`Generate keys`}</PrimaryButton>
                 </FooterModal>
             </ContentModal>

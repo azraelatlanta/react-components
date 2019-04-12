@@ -16,7 +16,7 @@ import {
 const SelectAddressModal = ({ Addresses, onClose, onSuccess }) => {
     const [addressIndex, setAddressIndex] = useState(0);
 
-    const handleSubmit = async () => {
+    const handleSubmit = () => {
         onSuccess(Addresses[addressIndex]);
     };
 
@@ -44,7 +44,7 @@ const SelectAddressModal = ({ Addresses, onClose, onSuccess }) => {
                     />
                 </Row>
                 <FooterModal>
-                    <ResetButton>{c('Label').t`Cancel`}</ResetButton>
+                    <ResetButton onClick={onClose}>{c('Label').t`Cancel`}</ResetButton>
                     <PrimaryButton type="submit">{c('Label').t`Next`}</PrimaryButton>
                 </FooterModal>
             </ContentModal>

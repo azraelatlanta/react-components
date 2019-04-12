@@ -10,7 +10,7 @@ import GeneratingModal from '../addKey/GeneratingModal';
 import SelectFilesModal from './SelectFilesModal';
 import ImportWarningModal from './ImportWarningModal';
 
-const ImportKeyModal = ({ Addresses, addressesKeys, onSuccess, onClose }) => {
+const ImportKeyModalProcess = ({ Addresses, addressesKeys, onSuccess, onClose }) => {
     const [state, dispatch] = useReducer(reducer, getInitialState({ Addresses }));
     const { createNotification } = useNotifications();
 
@@ -63,6 +63,7 @@ const ImportKeyModal = ({ Addresses, addressesKeys, onSuccess, onClose }) => {
 
     const generate = () => new Promise((resolve, reject) => {
         setTimeout(resolve, 1500);
+        console.log('files', files);
 
         //await call();
         createNotification({
@@ -81,11 +82,11 @@ const ImportKeyModal = ({ Addresses, addressesKeys, onSuccess, onClose }) => {
     )
 };
 
-ImportKeyModal.propTypes = {
+ImportKeyModalProcess.propTypes = {
     onSuccess: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired,
     Addresses: PropTypes.array.isRequired,
     addressesKeys: PropTypes.object.isRequired,
 };
 
-export default ImportKeyModal;
+export default ImportKeyModalProcess;

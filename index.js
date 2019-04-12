@@ -159,7 +159,7 @@ export { default as KeysTable } from './containers/keys/KeysTable';
 export { default as KeysStatus } from './containers/keys/KeysStatus';
 export { default as AddressKeysSection } from './containers/keys/AddressKeysSection';
 export { default as AddressKeysRow } from './containers/keys/AddressKeysRow';
-export { default as AddressKeysHeader } from './containers/keys/AddressKeysHeader';
+export { default as AddressKeysHeader } from './containers/keys/addressesKeysHeader/AddressKeysHeader';
 export { default as PaymentMethodState } from './containers/paymentMethods/PaymentMethodState';
 export { default as PaymentMethodActions } from './containers/paymentMethods/PaymentMethodActions';
 export { default as PaymentMethodDetails } from './containers/paymentMethods/PaymentMethodDetails';
@@ -257,3 +257,6 @@ export { useOrganization } from './models/organizationModel';
 export { useSubscription } from './models/subscriptionModel';
 export { useUser } from './models/userModel';
 export { useUserSettings } from './models/userSettingsModel';
+export { default as useKeySalts } from './models/keySaltsModel';
+
+export { default as FileInput } from './components/input/FileInput';

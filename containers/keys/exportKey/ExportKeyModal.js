@@ -44,7 +44,7 @@ const ExportKeyModal = ({ filename, decryptedPrivateKey, onClose, onSuccess }) =
                     <PasswordInput id={id} value={password} onChange={handleChange} autoFocus={true} required/>
                 </Row>
                 <FooterModal>
-                    <ResetButton>{c('Label').t`Cancel`}</ResetButton>
+                    <ResetButton onClick={onClose}>{c('Label').t`Cancel`}</ResetButton>
                     <PrimaryButton onClick={handleSubmit}>{c('Label').t`Export`}</PrimaryButton>
                 </FooterModal>
             </ContentDivModal>
@@ -56,6 +56,6 @@ ExportKeyModal.propTypes = {
     onSuccess: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired,
     decryptedPrivateKey: PropTypes.object.isRequired,
-    filename: PropTypes.object.isRequired
+    filename: PropTypes.string.isRequired
 };
 export default ExportKeyModal;

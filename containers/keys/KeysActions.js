@@ -1,7 +1,11 @@
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import React from 'react';
 import { DropdownActions } from 'react-components';
 import { c } from 'ttag';
+import { KEY_FILE_EXTENSION } from 'proton-shared/lib/constants';
+
+import ExportKeyModal from './exportKey/ExportKeyModal';
+import ReactivateKeyModalProcess from './reactivateKey/ReactivateKeyModalProcess';
 
 export const ACTIONS = {
     PRIMARY: 1,
@@ -46,12 +50,60 @@ const ACTIONS_TO_TEXT = {
 };
 
 const KeysActions = ({ actions }) => {
+    const [action, setAction] = useState();
+
+    const reset = () => {
+        setAction();
+    };
+
+    const handleExport = ({ User, Address, isAddressKey, info, decryptedPrivateKey }) => {
+        const { fingerprint } = info;
+        const filename = ['privatekey.', isAddressKey ? Address.Email : User.name, '-', fingerprint, KEY_FILE_EXTENSION].join('');
+        const modal = (
+            <ExportKeyModal
+                decryptedPrivateKey={decryptedPrivateKey}
+                filename={filename}
+                onClose={reset}
+                onSuccess={reset}
+            />
+        );
+        return setAction(modal);
+    };
+
+    const handleReactivate = async ({ User, Address, isAddressKey, Key, info }) => {
+        const modal = (
+            <ReactivateKeyModalProcess
+                keyData={Key}
+                keyInfo={info}
+                onSuccess={reset}
+                onClose={reset}
+            />
+        );
+        return setAction(modal);
+    };
+
+    const ACTIONS_TO_HANDLER = {
+        [ACTIONS.EXPORT]: handleExport,
+        [ACTIONS.REACTIVATE]: handleReactivate,
+    };
+
+    const createHandler = (cb) => () => {
+        const { action, ...rest } = cb();
+        ACTIONS_TO_HANDLER[action](rest);
+    };
+
     const list = actions.map(({ action, cb }) => ({
         ...ACTIONS_TO_TEXT[action](),
         type: 'button',
-        onClick: cb
+        onClick: createHandler(cb)
     }));
-    return <DropdownActions list={list} />;
+
+    return (
+        <>
+            {action}
+            <DropdownActions list={list} />
+        </>
+    );
 };
 
 KeysActions.propTypes = {

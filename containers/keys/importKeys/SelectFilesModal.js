@@ -1,69 +1,101 @@
-import React from 'react';
+import React, { useRef, useEffect, useState, useReducer } from 'react';
 import PropTypes from 'prop-types';
 import { c } from 'ttag';
-import { SelectFilesInput, useNotifications, usePrompts } from 'react-components';
-import { readFileAsString } from 'proton-shared/lib/helpers/fileHelper';
-import { parseArmoredKeys } from 'proton-shared/lib/keys/keyImport';
+import {
+    useNotifications,
+    Modal,
+    ContentDivModal,
+    Row,
+    FooterModal,
+    ResetButton,
+    FileInput
+} from 'react-components';
+
+import { parseKeys } from './helper';
 import DecryptKeyModal from './DecryptKeyModal';
-import { keyInfo as getKeyInfo, getKeys } from 'pmcrypto';
+import selectFilesReducer, { ACTIONS, DEFAULT_STATE } from './selectFilesReducer';
+
+const getDecryptKeyModal = ({ armoredKey, info: { fingerprint }}, dispatch) => {
+    return (
+        <DecryptKeyModal
+            title={c('Error').t`Private key password required`}
+            armoredKey={armoredKey}
+            fingerprint={fingerprint}
+            onClose={() => {
+                dispatch({ type: ACTIONS.KEY_CANCELLED, payload: fingerprint })
+            }}
+            onSuccess={(decryptedPrivateKey) => {
+                dispatch({ type: ACTIONS.KEY_DECRYPTED, payload: { fingerprint, decryptedPrivateKey }});
+            }}
+        />
+    )
+};
 
 const SelectFilesModal = ({ onClose, onSuccess }) => {
     const { createNotification } = useNotifications();
-    const { createPrompt } = usePrompts();
+    const [loading, setLoading] = useState(false);
+    const [{ done, keys, keyToDecrypt }, dispatch] = useReducer(selectFilesReducer, DEFAULT_STATE);
+    const fileRef = useRef();
 
-    const handleFileImport = async (files = []) => {
-        const filesAsStrings = await Promise.all(files.map(readFileAsString)).catch(() => []);
+    const handleFileImport = async ({ target }) => {
+        setLoading(true);
 
-        const armoredKeys = parseArmoredKeys(filesAsStrings.join('\n'));
-        if (!armoredKeys.length) {
+        const keys = await parseKeys(Array.from(target.files));
+
+        // Reset it to allow to select the same file again.
+        fileRef.current.value = '';
+
+        if (!keys.length) {
             createNotification({
                 text: c('Error').t`Invalid private key file`,
                 type: 'error'
             });
-            return onClose();
+            return setLoading(false);
         }
 
-        const keys = [];
-        for (let i = 0; i < armoredKeys.length; ++i) {
-            const armoredKey = armoredKeys[i];
-
-            try {
-                const keyInfo = await getKeyInfo(armoredKey);
-                const { decrypted, fingerprint } = keyInfo;
-
-                const decryptedPrivateKey = decrypted ? await getKeys(armoredKey) :
-                    await createPrompt((resolve, reject) => {
-                        return (
-                            <DecryptKeyModal
-                                title={c('Error').t`Private key password required`}
-                                armoredKey={armoredKey}
-                                fingerprint={fingerprint}
-                                onClose={reject}
-                                onSuccess={resolve}
-                            />
-                        )
-                    });
-
-                keys.push({ decryptedPrivateKey, info: keyInfo })
-            } catch (e) {
-                // eslint-disable-next-line
-            }
-        }
-
-        if (!keys.length) {
-            return onClose();
-        }
-
-        return onSuccess(keys);
+        dispatch({
+            type: ACTIONS.FILES,
+            payload: keys
+        });
     };
 
+    useEffect(() => {
+        if (loading && !keys.length) {
+            setLoading(false);
+        }
+        if (done) {
+            onSuccess(keys);
+        }
+    }, [onSuccess, keyToDecrypt, done, keys, loading]);
+
+    useEffect(() => {
+        fileRef.current.click();
+    }, []);
+
+    const title = c('Title').t`Select files to import`;
+
     return (
-        <SelectFilesInput
-            accept='.txt,.asc'
-            multiple={true}
-            onSuccess={handleFileImport}
-            onClose={onClose}
-        />
+        <>
+            {keyToDecrypt ? getDecryptKeyModal(keyToDecrypt, dispatch) : null}
+            <Modal show={true} onClose={onClose} title={title} type="small">
+                <ContentDivModal>
+                    <Row>
+                    </Row>
+                    <FooterModal>
+                        <ResetButton onClick={onClose}>{c('Label').t`Cancel`}</ResetButton>
+                        <FileInput
+                            accept='.txt,.asc'
+                            disabled={loading}
+                            ref={fileRef}
+                            multiple={true}
+                            onChange={handleFileImport}
+                        >
+                            {c('Select files').t`Upload`}
+                        </FileInput>
+                    </FooterModal>
+                </ContentDivModal>
+            </Modal>
+        </>
     );
 };
 
