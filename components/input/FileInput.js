@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import PropTypes from 'prop-types';
 
-const FileInput = React.forwardRef(({ children, id, className, ...rest }, ref) => {
+const FileInput = forwardRef(({ children, id, className, ...rest }, ref) => {
     return (
         <label className={'pm-button '.concat(className || '')} htmlFor={id}>
             <input id={id} type="file" className="hidden" {...rest} ref={ref} />

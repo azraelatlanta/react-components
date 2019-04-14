@@ -5,8 +5,6 @@ import { c } from 'ttag';
 import { useAuthenticationStore, useNotifications, useKeySalts } from 'react-components';
 
 import ReactivateKeyModal from './ReactivateKeyModal';
-import GeneratingModal from '../addKey/GeneratingModal';
-import LoadingModal from '../addKey/LoadingModal';
 
 const ReactivateKeyModalProcess = ({ keyInfo, keyData, onClose, onSuccess }) => {
     const [state, setState] = useState({});

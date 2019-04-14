@@ -35,6 +35,7 @@ export default (state, { type, payload }) => {
 
     if (type === ACTIONS.KEY_DECRYPTED) {
         const { fingerprint, decryptedPrivateKey } = payload;
+        console.log('wtf', payload);
 
         const keys = state.keys.map((key) =>
             (key.info.fingerprint === fingerprint)

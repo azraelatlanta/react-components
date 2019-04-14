@@ -1,55 +1,54 @@
 export const ACTIONS = {
     SELECT_ADDRESS: 1,
     SELECT_ENCRYPTION: 2,
-    WARNED: 3,
+    WARN: 3,
     GENERATE: 4,
     ADD: 5,
     RESET: 10
 };
 
-export const getInitialState = ({ Addresses, addressesKeys }) => {
+export const getInitialState = (Addresses) => {
     if (Addresses.length === 1) {
         const address = Addresses[0];
         return {
             address,
-            addressKeys: Object.values(addressesKeys[address.ID])
+            step: ACTIONS.SELECT_ENCRYPTION
         }
     }
     return {
-        Addresses,
-        addressesKeys
+        step: ACTIONS.SELECT_ADDRESS
     }
 };
 
 export const reducer = (state, { type, payload }) => {
     if (type === ACTIONS.SELECT_ADDRESS) {
-        const address = payload;
         return {
-            address,
-            addressKeys: Object.values(state.addressesKeys[address.ID])
+            address: payload,
+            step: ACTIONS.SELECT_ENCRYPTION
         }
     }
 
     if (type === ACTIONS.SELECT_ENCRYPTION) {
+        const { encryptionConfig, exists } = payload;
         return {
             ...state,
-            encryptionConfig: payload
+            encryptionConfig,
+            step: !exists ? ACTIONS.GENERATE : ACTIONS.WARN
         }
     }
 
-    if (type === ACTIONS.WARNED) {
+    if (type === ACTIONS.WARN) {
         return {
             ...state,
-            warned: true,
-            generating: true
+            step: ACTIONS.GENERATE
         }
     }
 
     if (type === ACTIONS.GENERATE) {
         return {
             ...state,
-            generating: false,
-            generatedKeys: payload
+            generatedKeys: payload,
+            step: ACTIONS.GENERATE
         }
     }
 };

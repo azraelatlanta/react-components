@@ -1,8 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { c } from 'ttag';
-import GeneratingModal from '../addKey/GeneratingModal';
-
 import { useAuthenticationStore, useNotifications } from 'react-components';
 
 const ReactivateKeysModalProcess = ({ onSuccess, onClose, ...rest }) => {

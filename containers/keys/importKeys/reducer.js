@@ -1,23 +1,27 @@
 export const ACTIONS = {
-    WARNED: 1,
+    WARN: 1,
     SELECT_ADDRESS: 2,
-    SELECT_FILES: 3
+    SELECT_FILES: 3,
+    PROCESS: 4
 };
 
-export const getInitialState = ({ Addresses }) => {
+export const getInitialState = (Addresses) => {
     if (Addresses.length === 1) {
         return {
             address: Addresses[0],
+            step: ACTIONS.WARN
         }
     }
-    return {}
+    return {
+        step: ACTIONS.WARN
+    }
 };
 
 export const reducer = (state, { type, payload }) => {
-    if (type === ACTIONS.WARNED) {
+    if (type === ACTIONS.WARN) {
         return {
-            warned: true,
-            ...state
+            ...state,
+            step: state.address ? ACTIONS.SELECT_FILES : ACTIONS.SELECT_ADDRESS
         }
     }
 
@@ -25,14 +29,15 @@ export const reducer = (state, { type, payload }) => {
         return {
             ...state,
             address: payload.address,
-            addressKeys: payload.addressKeys
+            step: ACTIONS.SELECT_FILES
         }
     }
 
     if (type === ACTIONS.SELECT_FILES) {
         return {
             ...state,
-            files: payload
+            files: payload,
+            step: ACTIONS.PROCESS
         }
     }
 };

@@ -1,92 +1,141 @@
-import React, { useReducer } from 'react';
+import React, { useReducer, useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { c } from 'ttag';
 
-import { useNotifications } from 'react-components';
+import {
+    useNotifications,
+    Alert,
+    Modal,
+    ContentModal,
+    FooterModal,
+    ResetButton,
+    PrimaryButton
+} from 'react-components';
 
-import SelectAddressModal from '../addKey/SelectAddressModal';
+import SelectAddress from '../shared/SelectAddress';
 import { getInitialState, reducer, ACTIONS } from './reducer';
-import GeneratingModal from '../addKey/GeneratingModal';
-import SelectFilesModal from './SelectFilesModal';
-import ImportWarningModal from './ImportWarningModal';
+import SelectAndDecryptFiles from '../shared/SelectAndDecryptFiles';
 
 const ImportKeyModalProcess = ({ Addresses, addressesKeys, onSuccess, onClose }) => {
-    const [state, dispatch] = useReducer(reducer, getInitialState({ Addresses }));
+    const [state, dispatch] = useReducer(reducer, getInitialState(Addresses));
+    const selectRef = useRef();
+    const [addressIndex, setAddressIndex] = useState(0);
     const { createNotification } = useNotifications();
-
-    const handleCancel = () => onClose();
 
     const {
         address,
         files,
-        warned
+        step
     } = state;
 
-    if (!warned) {
-        return (
-            <ImportWarningModal
-                Addresses={Addresses}
-                onSuccess={() => {dispatch({ type: ACTIONS.WARNED })}}
-                onClose={handleCancel}
-            />
-        )
-    }
+    console.log(state);
 
-    if (!address) {
-        return (
-            <SelectAddressModal
-                Addresses={Addresses}
-                onSuccess={(address) => {
-                    const addressKeys = addressesKeys[address.ID];
-                    dispatch({
-                        type: ACTIONS.SELECT_ADDRESS,
-                        payload: { address, addressKeys }
-                    });
-                }}
-                onClose={handleCancel}
-            />
-        )
-    }
+    const importKeyProcess = async () => {
+        const { Email } = address;
+        const name = Email;
+        const email = Email;
 
-    const email = address.Email;
+        console.log(files);
 
-    if (!files) {
-        return (
-            <SelectFilesModal
-                title={c('Title').t`New address key (${email})`}
-                onSuccess={(files) => dispatch({ type: ACTIONS.SELECT_FILES, payload: files })}
-                onClose={handleCancel}
-            />
-        )
-    }
-
-
-    const generate = () => new Promise((resolve, reject) => {
-        setTimeout(resolve, 1500);
-        console.log('files', files);
-
-        //await call();
         createNotification({
-            text: c('Success').t`Private keys imported`,
+            text: c('Success').t`Private key added for ${email}`,
             type: 'success'
         });
-    });
+
+        onSuccess();
+    };
+
+    useEffect(() => {
+        if (step === ACTIONS.PROCESS) {
+            importKeyProcess();
+        }
+    }, [step]);
+
+    const getStepContainer = () => {
+        if (step === ACTIONS.WARN) {
+            return {
+                title: c('Title').t`Import key`,
+                container: (
+                    <Alert>
+                        {c('Alert').t`Are you sure you want to import a private key? Importing an insecurely generated or leaked private key can harm the security of your emails.`}
+                    </Alert>
+                ),
+                handler: () => {
+                    dispatch({ type: ACTIONS.WARN });
+                }
+            };
+        }
+
+        if (step === ACTIONS.SELECT_ADDRESS) {
+            return {
+                title: c('Title').t`Select address`,
+                container: (
+                    <SelectAddress Addresses={Addresses} addressIndex={addressIndex} setAddressIndex={setAddressIndex}/>
+                ),
+                handler: () => {
+                    dispatch({ type: ACTIONS.SELECT_ADDRESS, payload: Addresses[addressIndex] });
+                }
+            };
+        }
+
+        if (step === ACTIONS.SELECT_FILES) {
+            const { Email } = address;
+            const handleSuccess = (files) => {
+                dispatch({ type: ACTIONS.SELECT_FILES, payload: files });
+            };
+            const handleError = (error) => {
+                createNotification({
+                    text: error,
+                    type: 'error'
+                });
+            };
+            return {
+                title: c('Title').t`New address key (${Email})`,
+                container: (
+                    <SelectAndDecryptFiles ref={selectRef} onSuccess={handleSuccess} onError={handleError}/>
+                ),
+                handler: () => {
+                    selectRef.current.click();
+                }
+            };
+        }
+
+        if (step === ACTIONS.PROCESS) {
+            return {
+                title: c('Title').t`Loading`,
+                container: (
+                    'Loading'
+                ),
+                handler: () => {
+                }
+            };
+        }
+    };
+
+    const {
+        container,
+        title,
+        handler
+    } = getStepContainer();
 
     return (
-        <GeneratingModal
-            generate={generate}
-            title={c('Title').t`Updating...`}
-            onClose={handleCancel}
-            onSuccess={onSuccess}
-        />
-    )
+        <Modal show={true} onClose={onClose} title={title} type="small">
+            <ContentModal onSubmit={handler} onReset={onClose}>
+                {container}
+                <FooterModal>
+                    <ResetButton onClick={onClose}>{c('Label').t`Cancel`}</ResetButton>
+                    <PrimaryButton type="submit">{c('Label').t`Next`}</PrimaryButton>
+                </FooterModal>
+            </ContentModal>
+        </Modal>
+    );
 };
 
 ImportKeyModalProcess.propTypes = {
     onSuccess: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired,
     Addresses: PropTypes.array.isRequired,
-    addressesKeys: PropTypes.object.isRequired,
+    addressesKeys: PropTypes.object.isRequired
 };
 
 export default ImportKeyModalProcess;

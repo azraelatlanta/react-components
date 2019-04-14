@@ -16,8 +16,8 @@ import {
 import { computeKeyPassword } from 'pm-srp';
 import { decryptPrivateKey } from 'pmcrypto';
 
-import { parseKeys } from '../importKeys/helper';
-import DecryptKeyModal from '../importKeys/DecryptKeyModal';
+import { parseKeys } from '../shared/selectFilesHelper';
+import DecryptKey from '../shared/DecryptKey';
 import { generateUID } from '../../../helpers/component';
 
 const ReactivateKeyModal = ({ keyInfo, keyData, keySalt, onClose, onSuccess }) => {
@@ -76,7 +76,7 @@ const ReactivateKeyModal = ({ keyInfo, keyData, keySalt, onClose, onSuccess }) =
         }
 
         const modal = (
-            <DecryptKeyModal
+            <DecryptKey
                 title={c('Error').t`Private key password required`}
                 armoredKey={armoredKey}
                 fingerprint={info.fingerprint}
