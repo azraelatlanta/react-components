@@ -6,7 +6,7 @@ import { Table, TableHeader, TableBody } from 'react-components';
 import KeysTable from './KeysTable';
 import AddressKeysRow from './AddressKeysRow';
 
-const AddressKeysTable = ({ addressKeys, mode, loading }) => {
+const AddressKeysTable = ({ addressKeys, title, loading }) => {
     const list = addressKeys.map(({ fingerprint, email, type, keys }) => {
         return (
             <AddressKeysRow key={fingerprint} email={email} fingerprint={fingerprint} type={type}>
@@ -14,9 +14,6 @@ const AddressKeysTable = ({ addressKeys, mode, loading }) => {
             </AddressKeysRow>
         );
     });
-
-    const title =
-        mode === 'user' ? c('Title header for keys table').t`User` : c('Title header for keys table').t`Email`;
 
     return (
         <Table>
@@ -36,7 +33,7 @@ const AddressKeysTable = ({ addressKeys, mode, loading }) => {
 
 AddressKeysTable.propTypes = {
     addressKeys: PropTypes.array.isRequired,
-    mode: PropTypes.string.isRequired,
+    title: PropTypes.string.isRequired,
     loading: PropTypes.bool
 };
 

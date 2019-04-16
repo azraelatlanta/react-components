@@ -1,4 +1,5 @@
 import React from 'react';
+import { c } from 'ttag';
 
 import AddressKeysHeader from './addressesKeysHeader/AddressKeysHeader';
 import AddressKeysHeaderActions, { getHeaderActions } from './addressesKeysHeader/AddressKeysHeaderActions';
@@ -17,7 +18,7 @@ const AddressKeysSection = () => {
     const [userKeys, loadingUserKeys] = useUserKeys(User);
     const [addressesKeys, loadingAddressesKeys] = useAddressesKeys(User, Addresses);
 
-    const formattedAdressesKeys = getAddressesKeys({ User, Addresses, addressesKeys });
+    const formattedAddressesKeys = getAddressesKeys({ User, Addresses, addressesKeys });
     const formattedUserKeys = getUserKeys({ User, userKeys });
 
     const headerActions = getHeaderActions({
@@ -27,18 +28,27 @@ const AddressKeysSection = () => {
         addressesKeys
     });
 
+    const loadingAll = loadingAddresses || loadingAddressesKeys || loadingUserKeys;
+
+    const userTableTitle = c('Title').t`User`;
+    const addressTableTitle = c('Title').t`Email`;
+
     return (
         <>
             <AddressKeysHeader/>
-            <AddressKeysHeaderActions actions={headerActions}/>
+            {loadingAll ? null: <AddressKeysHeaderActions actions={headerActions}/>}
             <AddressKeysTable
                 loading={loadingAddresses || loadingAddressesKeys}
-                addressKeys={formattedAdressesKeys}
-                mode={'address'}
+                addressKeys={formattedAddressesKeys}
+                title={addressTableTitle}
             />
 
             <ContactKeysHeader/>
-            <AddressKeysTable loading={loadingUserKeys} addressKeys={formattedUserKeys} mode={'user'}/>
+            <AddressKeysTable
+                loading={loadingUserKeys}
+                addressKeys={formattedUserKeys}
+                title={userTableTitle}
+            />
         </>
     );
 };
