@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useCachedResult, useApi, useCache, useAuthenticationStore } from 'react-components';
+import { useCachedResult, useApi, useCache } from 'react-components';
 import { getKeySalts } from 'proton-shared/lib/api/keys';
 
 const KEY = 'keySalts';

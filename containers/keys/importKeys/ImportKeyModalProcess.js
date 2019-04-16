@@ -1,36 +1,37 @@
-import React, { useReducer, useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { c } from 'ttag';
-
-import {
-    useNotifications,
-    Alert,
-    Modal,
-    ContentModal,
-    FooterModal,
-    ResetButton,
-    PrimaryButton
-} from 'react-components';
+import { useAuthenticationStore, useNotifications } from 'react-components';
 
 import SelectAddress from '../shared/SelectAddress';
-import { getInitialState, reducer, ACTIONS } from './reducer';
-import SelectAndDecryptFiles from '../shared/SelectAndDecryptFiles';
+import RenderModal from '../shared/RenderModal';
+import Warning from './Warning';
+import useSelectAndDecryptStep from './useSelectAndDecryptStep';
+
+const getInitialState = (Addresses) => {
+    if (Addresses.length === 1) {
+        const address = Addresses[0];
+        return {
+            address,
+            step: 0
+        }
+    }
+    return {
+        step: 0
+    }
+};
 
 const ImportKeyModalProcess = ({ Addresses, addressesKeys, onSuccess, onClose }) => {
-    const [state, dispatch] = useReducer(reducer, getInitialState(Addresses));
-    const selectRef = useRef();
-    const [addressIndex, setAddressIndex] = useState(0);
+    const [state, setState] = useState(getInitialState(Addresses));
+    const authenticationStore = useAuthenticationStore();
     const { createNotification } = useNotifications();
+    const selectAndDecryptStep = useSelectAndDecryptStep();
 
-    const {
-        address,
-        files,
-        step
-    } = state;
-
-    console.log(state);
+    const [addressIndex, setAddressIndex] = useState(0);
+    const { step, address, files = {} } = state;
 
     const importKeyProcess = async () => {
+        console.log(address);
         const { Email } = address;
         const name = Email;
         const email = Email;
@@ -46,89 +47,42 @@ const ImportKeyModalProcess = ({ Addresses, addressesKeys, onSuccess, onClose })
     };
 
     useEffect(() => {
-        if (step === ACTIONS.PROCESS) {
+        if (step === 3) {
             importKeyProcess();
         }
     }, [step]);
 
-    const getStepContainer = () => {
-        if (step === ACTIONS.WARN) {
-            return {
-                title: c('Title').t`Import key`,
-                container: (
-                    <Alert>
-                        {c('Alert').t`Are you sure you want to import a private key? Importing an insecurely generated or leaked private key can harm the security of your emails.`}
-                    </Alert>
-                ),
-                handler: () => {
-                    dispatch({ type: ACTIONS.WARN });
-                }
-            };
-        }
-
-        if (step === ACTIONS.SELECT_ADDRESS) {
-            return {
-                title: c('Title').t`Select address`,
-                container: (
-                    <SelectAddress Addresses={Addresses} addressIndex={addressIndex} setAddressIndex={setAddressIndex}/>
-                ),
-                handler: () => {
-                    dispatch({ type: ACTIONS.SELECT_ADDRESS, payload: Addresses[addressIndex] });
-                }
-            };
-        }
-
-        if (step === ACTIONS.SELECT_FILES) {
-            const { Email } = address;
-            const handleSuccess = (files) => {
-                dispatch({ type: ACTIONS.SELECT_FILES, payload: files });
-            };
-            const handleError = (error) => {
-                createNotification({
-                    text: error,
-                    type: 'error'
-                });
-            };
-            return {
-                title: c('Title').t`New address key (${Email})`,
-                container: (
-                    <SelectAndDecryptFiles ref={selectRef} onSuccess={handleSuccess} onError={handleError}/>
-                ),
-                handler: () => {
-                    selectRef.current.click();
-                }
-            };
-        }
-
-        if (step === ACTIONS.PROCESS) {
-            return {
-                title: c('Title').t`Loading`,
-                container: (
-                    'Loading'
-                ),
-                handler: () => {
-                }
-            };
-        }
+    const handleSelectFiles = (files) => {
+        setState({ ...state, files, step: 3 });
     };
 
-    const {
-        container,
-        title,
-        handler
-    } = getStepContainer();
+    const handleError = (text) => {
+        createNotification({ type: 'error', text });
+    };
 
-    return (
-        <Modal show={true} onClose={onClose} title={title} type="small">
-            <ContentModal onSubmit={handler} onReset={onClose}>
-                {container}
-                <FooterModal>
-                    <ResetButton onClick={onClose}>{c('Label').t`Cancel`}</ResetButton>
-                    <PrimaryButton type="submit">{c('Label').t`Next`}</PrimaryButton>
-                </FooterModal>
-            </ContentModal>
-        </Modal>
-    );
+    const currentStep = [
+        () => ({
+            title: c('Title').t`Import key`,
+            container: <Warning/>,
+            submit: c('Action').t`Yes`,
+            onSubmit: () => setState({ ...state, step: address ? 2 : 1 }),
+        }),
+        () => ({
+            title: c('Title').t`Select address`,
+            container: <SelectAddress Addresses={Addresses} addressIndex={addressIndex} setAddressIndex={setAddressIndex} />,
+            submit: c('Action').t`Select address`,
+            onSubmit: () => setState({ ...state, address, step: 2 })
+        }),
+        () => selectAndDecryptStep(handleSelectFiles, handleError),
+        () => ({
+            title: c('Title').t`Importing key`,
+            container: (<div>Loading...</div>)
+        })
+    ][step]();
+
+    const close = c('Action').t`Close`;
+
+    return <RenderModal onClose={onClose} close={close} {...currentStep}/>;
 };
 
 ImportKeyModalProcess.propTypes = {

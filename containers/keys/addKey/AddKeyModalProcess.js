@@ -1,30 +1,39 @@
-import React, { useReducer, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { c } from 'ttag';
-import { algorithmExists } from 'proton-shared/lib/keys/keyGeneration';
+import { getAlgorithmExists } from 'proton-shared/lib/keys/keyGeneration';
 import { generateKey } from 'pmcrypto';
+import { useAuthenticationStore, useNotifications } from 'react-components';
 
-import { DEFAULT_ENCRYPTION_CONFIG, ENCRYPTION_CONFIGS, ENCRYPTION_TYPES } from 'proton-shared/lib/constants';
-import { Modal, FooterModal, PrimaryButton, ResetButton, ContentDivModal, useAuthenticationStore, useNotifications } from 'react-components';
-
+import { DEFAULT_ENCRYPTION_CONFIG, ENCRYPTION_CONFIGS } from 'proton-shared/lib/constants';
+import RenderModal from '../shared/RenderModal';
 import SelectAddress from '../shared/SelectAddress';
-import { getInitialState, reducer, ACTIONS } from './reducer';
 import SelectEncryption from './SelectEncryption';
 import SimilarKeyWarning from './SimilarKeyWarning';
 
+const getInitialState = (Addresses) => {
+    if (Addresses.length === 1) {
+        const address = Addresses[0];
+        return {
+            address,
+            step: 1
+        }
+    }
+
+    return {
+        step: 0
+    }
+};
+
 const AddKeyModalProcess = ({ onSuccess, onClose, Addresses, addressesKeys }) => {
-    const [state, dispatch] = useReducer(reducer, getInitialState(Addresses));
+    const [state, setState] = useState(getInitialState(Addresses));
     const authenticationStore = useAuthenticationStore();
     const { createNotification } = useNotifications();
 
     const [addressIndex, setAddressIndex] = useState(0);
     const [encryptionType, setEncryptionType] = useState(DEFAULT_ENCRYPTION_CONFIG);
 
-    const {
-        step,
-        address,
-        encryptionConfig
-    } = state;
+    const { step, address, encryption } = state;
 
     const createKeyProcess = async () => {
         const { Email } = address;
@@ -36,10 +45,10 @@ const AddKeyModalProcess = ({ onSuccess, onClose, Addresses, addressesKeys }) =>
             userIds: [{ name, email }],
             email,
             passphrase: authenticationStore.getPassword(),
-            ...encryptionConfig
+            ...encryption.config
         });
 
-        console.log(key);
+        console.log(key, encryption);
 
         createNotification({
             text: c('Success').t`Private key added for ${email}`,
@@ -50,89 +59,56 @@ const AddKeyModalProcess = ({ onSuccess, onClose, Addresses, addressesKeys }) =>
     };
 
     useEffect(() => {
-        if (step === ACTIONS.GENERATE) {
+        if (step === 3) {
             createKeyProcess();
         }
     }, [step]);
 
-    const getStepContainer = () => {
-        if (step === ACTIONS.SELECT_ADDRESS) {
-            return {
-                title: c('Title').t`Select address`,
-                container: (
-                    <SelectAddress Addresses={Addresses} addressIndex={addressIndex} setAddressIndex={setAddressIndex} />
-                ),
-                handler: () => {
-                    dispatch({ type: ACTIONS.SELECT_ADDRESS, payload: Addresses[addressIndex] });
-                }
-            }
-        }
+    const handleSelectEncryption = () => {
+        const { ID } = address;
 
-        if (step === ACTIONS.SELECT_ENCRYPTION) {
-            const { ID, Email } = address;
-            return {
-                title: c('Title').t`New address key (${Email})`,
-                container: (
-                    <SelectEncryption encryptionType={encryptionType} setEncryptionType={setEncryptionType} />
-                ),
-                handler: () => {
-                    const addressKeys = Object.values(addressesKeys[ID]);
-                    const addressKeyInfos = addressKeys.map(({ info }) => info);
-                    const encryptionConfig = ENCRYPTION_CONFIGS[encryptionType];
+        const addressKeys = Object.values(addressesKeys[ID]);
+        const addressKeyInfos = addressKeys.map(({ info }) => info);
 
-                    dispatch({
-                        type: ACTIONS.SELECT_ENCRYPTION,
-                        payload: {
-                            encryptionConfig,
-                            exists: algorithmExists(addressKeyInfos, encryptionConfig)
-                        }
-                    });
-                }
-            }
-        }
+        const encryption = { type: encryptionType, config: ENCRYPTION_CONFIGS[encryptionType] };
+        const algorithmExists = getAlgorithmExists(addressKeyInfos, encryption.config);
 
-        if (step === ACTIONS.WARN) {
-            return {
-                title: c('Title').t`Similar key already active`,
-                container: (
-                    <SimilarKeyWarning/>
-                ),
-                handler: () => {
-                    dispatch({ type: ACTIONS.WARN });
-                }
-            }
-        }
-
-        if (step === ACTIONS.GENERATE) {
-            return {
-                title: c('Title').t`Generating ${encryptionType} key`,
-                container: (
-                    <div>Loading...</div>
-                ),
-                handler: () => {
-                    dispatch({ type: ACTIONS.WARN });
-                }
-            }
-        }
+        setState({
+            ...state,
+            encryption,
+            step: algorithmExists ? 2 : 3
+        });
     };
 
-    const {
-        container,
-        title,
-        handler
-    } = getStepContainer();
+    const currentStep = [
+        () => ({
+            title: c('Title').t`Select address`,
+            container: <SelectAddress Addresses={Addresses} addressIndex={addressIndex} setAddressIndex={setAddressIndex} />,
+            submit: c('Action').t`Select address`,
+            onSubmit: () => setState({ address: Addresses[addressIndex], step: 1 })
+        }),
+        () => ({
+            title: c('Title').t`Select configuration`,
+            container: <SelectEncryption encryptionType={encryptionType} setEncryptionType={setEncryptionType} />,
+            submit: c('Action').t`Select`,
+            onSubmit: handleSelectEncryption
+        }),
+        () => ({
+            title: c('Title').t`Similar key already active`,
+            container: (<SimilarKeyWarning/>),
+            submit: c('Action').t`Yes`,
+            onSubmit: () => setState({ ...state, step: 3 })
+        }),
+        () => ({
+            title: c('Title').t`Generating ${encryption.type} key`,
+            container: (<div>Loading...</div>),
+            close: undefined
+        }),
+    ][step]();
 
-    return (
-        <Modal show={true} onClose={onClose} title={title} type="small">
-            <ContentDivModal>
-                {container}
-                <FooterModal>
-                    <ResetButton onClick={onClose}>{c('Label').t`Cancel`}</ResetButton>
-                    <PrimaryButton onClick={handler}>{c('Label').t`Next`}</PrimaryButton>
-                </FooterModal>
-            </ContentDivModal>
-        </Modal>
-    )
+    const close = c('Action').t`Close`;
+
+    return <RenderModal onClose={onClose} close={close} {...currentStep}/>;
 };
 
 AddKeyModalProcess.propTypes = {
