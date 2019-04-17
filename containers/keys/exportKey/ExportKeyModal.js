@@ -3,19 +3,15 @@ import PropTypes from 'prop-types';
 import { c } from 'ttag';
 import {
     Alert,
-    Modal,
-    ContentDivModal,
     Row,
     Label,
     PasswordInput,
-    FooterModal,
-    ResetButton,
-    PrimaryButton
 } from 'react-components';
 import { encryptPrivateKey } from 'pmcrypto';
 import downloadFile from 'proton-shared/lib/helpers/downloadFile';
 
 import { generateUID } from '../../../helpers/component';
+import RenderModal from '../shared/RenderModal';
 
 const ExportKeyModal = ({ filename, decryptedPrivateKey, onClose, onSuccess }) => {
     const [password, setPassword] = useState('');
@@ -32,24 +28,29 @@ const ExportKeyModal = ({ filename, decryptedPrivateKey, onClose, onSuccess }) =
     };
 
     const title = c('Title').t`Export key`;
+
     const label = c('Label').t`Please enter a password to encrypt your private key with before exporting.`;
     const notificationText = c('Label').t`IMPORTANT: Downloading your private keys and sending them over or storing them on insecure media can jeopardise the security of your account!`;
 
-    return (
-        <Modal show={true} onClose={onClose} title={title} type="small">
-            <ContentDivModal>
-                <Alert>{notificationText}</Alert>
-                <Row>
-                    <Label htmlFor={id}>{label}</Label>
-                    <PasswordInput id={id} value={password} onChange={handleChange} autoFocus={true} required/>
-                </Row>
-                <FooterModal>
-                    <ResetButton onClick={onClose}>{c('Label').t`Cancel`}</ResetButton>
-                    <PrimaryButton onClick={handleSubmit}>{c('Label').t`Export`}</PrimaryButton>
-                </FooterModal>
-            </ContentDivModal>
-        </Modal>
+    const container = (
+        <>
+            <Alert>{notificationText}</Alert>
+            <Row>
+                <Label htmlFor={id}>{label}</Label>
+                <PasswordInput id={id} value={password} onChange={handleChange} autoFocus={true} required/>
+            </Row>
+        </>
     );
+
+    const props = {
+        title,
+        container,
+        close: c('Action').t`Cancel`,
+        submit: c('Action').t`Export`,
+        onSubmit: handleSubmit
+    };
+
+    return <RenderModal onClose={onClose} close={close} {...props}/>;
 };
 
 ExportKeyModal.propTypes = {

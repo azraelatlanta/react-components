@@ -5,14 +5,19 @@ import { c } from 'ttag';
 import {
     useAuthenticationStore,
     useNotifications,
-    useKeySalts
+    useKeySalts,
+    useApi,
+    useEventManager
 } from 'react-components';
+import { encryptPrivateKey } from 'pmcrypto';
 
 import RenderModal from '../shared/RenderModal';
 import useDecryptOrUploadStep from './useDecryptOrUploadStep';
 
 const ReactivateKeyModalProcess = ({ keyInfo, keyData, onClose, onSuccess }) => {
-    const [{ step, key }, setState] = useState({ step: 0 });
+    const [{ step, decryptedPrivateKey }, setState] = useState({ step: 0 });
+    const api = useApi();
+    const { call } = useEventManager();
     const [keySalts = [], loading] = useKeySalts();
     const authenticationStore = useAuthenticationStore();
     const { createNotification } = useNotifications();
@@ -22,15 +27,40 @@ const ReactivateKeyModalProcess = ({ keyInfo, keyData, onClose, onSuccess }) => 
         keyData,
     });
 
-    const generate = () => setTimeout(() => {
-        //await call();
-        console.log(key);
-        createNotification({
-            text: c('Success').t`Key reactivated`,
-            type: 'success'
-        });
-        onSuccess();
-    }, 1500);
+    const generate = async () => {
+        const password = authenticationStore.getPassword();
+        if (!decryptedPrivateKey || !password) {
+            throw new Error('Missing private key or password');
+        }
+        console.log(decryptedPrivateKey);
+        try {
+            const encryptedPrivateKey = await encryptPrivateKey(decryptedPrivateKey, password);
+            const newKeysList = keysReducer(keysList, reactivateKey({
+                decryptedPrivateKey,
+                fingerprint: keyInfo.fingerprint,
+                address
+            }));
+
+            const SignedKeyList = await generateSignedKeyList(newKeysList);
+
+            await api(reactivateKey(keyData.ID, {
+                PrivateKey: encryptedPrivateKey,
+                SignedKeyList
+            }));
+
+            await call();
+
+            createNotification({
+                text: c('Success').t`Key reactivated`,
+                type: 'success'
+            });
+
+            onSuccess();
+        } catch (e) {
+            console.log(e);
+            onClose();
+        }
+    };
 
     useEffect(() => {
         if (step === 1) {
@@ -38,8 +68,8 @@ const ReactivateKeyModalProcess = ({ keyInfo, keyData, onClose, onSuccess }) => 
         }
     }, [step]);
 
-    const handleSuccess = (key) => {
-        setState({ step: 1, key });
+    const handleSuccess = (decryptedPrivateKey) => {
+        setState({ step: 1, decryptedPrivateKey });
     };
 
     const handleError = (text) => {

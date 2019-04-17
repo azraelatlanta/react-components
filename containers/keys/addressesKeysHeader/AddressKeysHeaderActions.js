@@ -28,47 +28,28 @@ export const getHeaderActions = ({
     userKeys = {},
     addressesKeys = {}
 }) => {
-    const createCb = ({ action, ...rest }) => () => ({
-        action,
-        ...rest,
-        User,
-        Addresses,
-        addressesKeys,
-        userKeys
-    });
-
     const keysToReactivate = getAllKeysToReactivate({ Addresses, User, addressesKeys, userKeys });
 
     const canAddKey = true;
     const canReactivateKeys = keysToReactivate.length;
 
-    const headerActions = [
-        canAddKey && { action: ACTIONS.ADD },
-        canAddKey && { action: ACTIONS.IMPORT },
-        canReactivateKeys && { action: ACTIONS.REACTIVATE_ALL, keysToReactivate }
+    return [
+        canAddKey && { actionType: ACTIONS.ADD },
+        canAddKey && { actionType: ACTIONS.IMPORT },
+        canReactivateKeys && { actionType: ACTIONS.REACTIVATE_ALL, keysToReactivate }
     ].filter(Boolean);
-
-    return headerActions.map(({ action, ...rest }) => ({
-        action,
-        ...rest,
-        cb: createCb({ action, ...rest })
-    }));
 };
 
-const KeyActionAdd = (cb) => {
-    return (
-        <PrimaryButton key={ACTIONS.IMPORT} onClick={cb}>{c('Action').t`Add new key`}</PrimaryButton>
-    );
-};
+const KeyActionAdd = ({ cb }) => (
+    <PrimaryButton onClick={cb}>{c('Action').t`Add new key`}</PrimaryButton>
+);
 
-const KeyActionImport = (cb) => {
-    return (
-        <Button key={ACTIONS.ADD} onClick={cb}>{c('Action').t`Import key`}</Button>
-    );
-};
+const KeyActionImport = ({ cb }) => (
+    <Button onClick={cb}>{c('Action').t`Import key`}</Button>
+);
 
-const KeyActionReactivateAll = (cb, { keysToReactivate }) => (
-    <Button key={ACTIONS.REACTIVATE_ALL} onClick={cb}>{c('Action').t`Reactivate keys`} ({keysToReactivate.length})</Button>
+const KeyActionReactivateAll = ({ cb, keysToReactivate }) => (
+    <Button onClick={cb}>{c('Action').t`Reactivate keys`} ({keysToReactivate.length})</Button>
 );
 
 const ACTIONS_TO_COMPONENT = {
@@ -77,64 +58,12 @@ const ACTIONS_TO_COMPONENT = {
     [ACTIONS.REACTIVATE_ALL]: KeyActionReactivateAll,
 };
 
-const AddressKeysHeaderActions = ({ actions = [] }) => {
-    const [action, setAction] = useState();
-
-    const reset = () => {
-        setAction();
-    };
-
-    const createHandler = (cb) => () => {
-        const { action, ...rest } = cb();
-
-        const { Addresses, addressesKeys } = rest;
-
-        if (action === ACTIONS.ADD) {
-            const modal = (
-                <AddKeyModalProcess
-                    onSuccess={reset}
-                    onClose={reset}
-                    Addresses={Addresses}
-                    addressesKeys={addressesKeys}
-                />
-            );
-
-            return setAction(modal);
-        }
-
-        if (action === ACTIONS.IMPORT) {
-            const modal = (
-                <ImportKeyModalProcess
-                    onSuccess={reset}
-                    onClose={reset}
-                    Addresses={Addresses}
-                    addressesKeys={addressesKeys}
-                />
-            );
-
-            return setAction(modal);
-        }
-
-        if (action === ACTIONS.REACTIVATE_ALL) {
-            const { keysToReactivate } = rest;
-
-            const modal = (
-                <ReactivateKeysModal
-                    onSuccess={reset}
-                    onClose={reset}
-                    Addresses={Addresses}
-                    addressesKeys={addressesKeys}
-                    keysToReactivate={keysToReactivate}
-                />
-            );
-
-            return setAction(modal);
-        }
-    };
-
-    const actionsList = actions.map(({ action, cb, ...rest }) => {
-        const handler = createHandler(cb);
-        return ACTIONS_TO_COMPONENT[action](handler, rest)
+const AddressKeysHeaderActions = ({ actions = [], onAction }) => {
+    const actionsList = actions.map((action) => {
+        const handler = () => onAction(action);
+        const { actionType, ...rest }  = action;
+        const Component = ACTIONS_TO_COMPONENT[actionType];
+        return <Component key={actionType} cb={handler} {...rest}/>
     });
 
     if (!actionsList.length) {
@@ -143,14 +72,14 @@ const AddressKeysHeaderActions = ({ actions = [] }) => {
 
     return (
         <Block>
-            {action}
             {actionsList}
         </Block>
-    )
+    );
 };
 
 AddressKeysHeaderActions.propTypes = {
     actions: PropTypes.array.isRequired,
+    onAction: PropTypes.func.isRequired
 };
 
 export default AddressKeysHeaderActions;

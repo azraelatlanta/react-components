@@ -6,11 +6,15 @@ import { Table, TableHeader, TableBody } from 'react-components';
 import KeysTable from './KeysTable';
 import AddressKeysRow from './AddressKeysRow';
 
-const AddressKeysTable = ({ addressKeys, title, loading }) => {
-    const list = addressKeys.map(({ fingerprint, email, type, keys }) => {
+const AddressKeysTable = ({ onAction, addressKeys, title, loading }) => {
+    const list = addressKeys.map(({ email, keys }) => {
+        const primaryKey = keys[0] || {};
+
+        const { fingerprint, type } = primaryKey;
+
         return (
             <AddressKeysRow key={fingerprint} email={email} fingerprint={fingerprint} type={type}>
-                <KeysTable keys={keys} />
+                <KeysTable keys={keys} onAction={onAction} />
             </AddressKeysRow>
         );
     });
@@ -34,6 +38,7 @@ const AddressKeysTable = ({ addressKeys, title, loading }) => {
 AddressKeysTable.propTypes = {
     addressKeys: PropTypes.array.isRequired,
     title: PropTypes.string.isRequired,
+    onAction: PropTypes.func.isRequired,
     loading: PropTypes.bool
 };
 

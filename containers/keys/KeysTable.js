@@ -7,10 +7,23 @@ import KeysRow from './KeysRow';
 import KeysActions from './KeysActions';
 import KeysStatus from './KeysStatus';
 
-const KeysTable = ({ keys = [] }) => {
-    const list = keys.map(({ actions, statuses, fingerprint, type }) => {
-        const keysActions = <KeysActions actions={actions} />;
-        const keysStatus = <KeysStatus statuses={statuses} />;
+const KeysTable = ({ keys = [], onAction }) => {
+    const list = keys.map(({ keyID, addressID, actions, statuses, fingerprint, type }) => {
+        const handleAction = (actionType) => {
+            onAction({
+                actionType,
+                keyID,
+                addressID
+            })
+        };
+
+        const keysActions = (
+            <KeysActions onAction={handleAction} actions={actions} />
+        );
+
+        const keysStatus = (
+            <KeysStatus statuses={statuses} />
+        );
 
         return (
             <KeysRow
@@ -39,7 +52,8 @@ const KeysTable = ({ keys = [] }) => {
 };
 
 KeysTable.propTypes = {
-    keys: PropTypes.array.isRequired
+    keys: PropTypes.array.isRequired,
+    onAction: PropTypes.func.isRequired
 };
 
 export default KeysTable;
