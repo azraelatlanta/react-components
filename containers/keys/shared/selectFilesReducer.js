@@ -47,7 +47,7 @@ export default (state, { type, payload }) => {
         const { fingerprint, decryptedPrivateKey } = payload;
 
         const keys = state.keys.map((key) =>
-            (key.info.fingerprint === fingerprint)
+            (key.info.fingerprints[0] === fingerprint)
                 ? { ...key, decryptedPrivateKey: decryptedPrivateKey }
                 : key
         );

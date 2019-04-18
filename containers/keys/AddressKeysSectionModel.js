@@ -95,8 +95,8 @@ export const convertKey = ({
     return {
         keyID: Key.ID,
         addressID: Address ? Address.ID : undefined,
-        fingerprint: info.fingerprint,
-        type: describe(info),
+        fingerprint: info.fingerprints[0],
+        type: describe(info.algorithmInfo),
         statuses: keyStatuses,
         actions: keyActions
     }

@@ -35,7 +35,7 @@ const ReactivateKeyModalProcess = ({ isAddressKey, keysMap, keyInfo, keyData, on
 
         const newKeysList = keysReducer(keysMap, reactivateKey({
             decryptedPrivateKey,
-            fingerprint: keyInfo.fingerprint,
+            fingerprint: keyInfo.fingerprints[0],
             address
         }));
 

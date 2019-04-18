@@ -21,7 +21,7 @@ const useSelectAndDecryptStep = () => {
         return nextState;
     };
 
-    const decryptFileStep = ({ armoredKey, info: { fingerprint }}, onSuccess, onError) => {
+    const decryptFileStep = ({ armoredKey, info: { fingerprint: [fingerprint] }}, onSuccess, onError) => {
         const handleDecrypt = async () => {
             try {
                 setPassword('');

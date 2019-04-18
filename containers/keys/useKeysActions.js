@@ -19,7 +19,7 @@ const useKeysActions = ({ User, Addresses, addressesKeys, userKeys, modal, setMo
 
     const handleExport = ({ key, address }) => {
         const name = address ? address.Email : User.Name;
-        const { decryptedPrivateKey, info: { fingerprint } } = key;
+        const { decryptedPrivateKey, info: { fingerprint: [fingerprint] } } = key;
 
         const filename = ['privatekey.', name, '-', fingerprint, KEY_FILE_EXTENSION].join('');
 
