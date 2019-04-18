@@ -4,7 +4,7 @@ import ReactivateKeyModalProcess from './reactivateKey/ReactivateKeyModalProcess
 import { ACTIONS } from './KeysActions';
 import { KEY_FILE_EXTENSION } from 'proton-shared/lib/constants';
 
-const useKeysActions = ({ User, Addresses, addressesKeys, userKeys, setModal }) => {
+const useKeysActions = ({ User, Addresses, addressesKeys, userKeys, modal, setModal }) => {
     const resetModal = () => setModal();
 
     const getAddress = (addressID) => {
@@ -35,11 +35,13 @@ const useKeysActions = ({ User, Addresses, addressesKeys, userKeys, setModal }) 
         setModal(modal);
     };
 
-    const handleReactivate = ({ key }) => {
+    const handleReactivate = ({ key, address }) => {
         const { Key, info } = key;
 
         const modal = (
             <ReactivateKeyModalProcess
+                isAddressKey={!!address}
+                keysMap={address ? addressesKeys[address.ID] : undefined}
                 keyData={Key}
                 keyInfo={info}
                 onClose={resetModal}
@@ -56,12 +58,15 @@ const useKeysActions = ({ User, Addresses, addressesKeys, userKeys, setModal }) 
     };
 
     return ({ actionType, keyID, addressID }) => {
+        if (modal) {
+            return;
+        }
         if (!ACTIONS_TO_HANDLER[actionType]) {
             throw new Error('unsupported action');
         }
         const key = getKey(addressID, keyID);
         const address = getAddress(addressID);
-        if (!key || !address) {
+        if (!key || (addressID && !address)) {
             throw new Error('Could not find address or key');
         }
         ACTIONS_TO_HANDLER[actionType]({ key, address });

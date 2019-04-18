@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ACTIONS } from './addressesKeysHeader/AddressKeysHeaderActions';
 import AddKeyModalProcess from './addKey/AddKeyModalProcess';
 import ImportKeyModalProcess from './importKeys/ImportKeyModalProcess';
+import ReactivateKeysModalProcess from './reactivateKeys/ReactivateKeysModalProcess';
 
 const useKeysActions = ({ User, userKeys, Addresses, addressesKeys, modal, setModal }) => {
     const resetModal = () => setModal();
@@ -34,7 +35,7 @@ const useKeysActions = ({ User, userKeys, Addresses, addressesKeys, modal, setMo
 
     const handleReactivateAll = ({ keysToReactivate }) => {
         const modal = (
-            <ReactivateKeysModal
+            <ReactivateKeysModalProcess
                 onSuccess={resetModal}
                 onClose={resetModal}
                 Addresses={Addresses}

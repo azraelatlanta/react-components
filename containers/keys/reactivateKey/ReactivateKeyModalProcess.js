@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { c } from 'ttag';
 
+import { reactivateKey } from 'proton-shared/lib/api/keys';
 import {
     useAuthenticationStore,
     useNotifications,
@@ -14,7 +15,7 @@ import { encryptPrivateKey } from 'pmcrypto';
 import RenderModal from '../shared/RenderModal';
 import useDecryptOrUploadStep from './useDecryptOrUploadStep';
 
-const ReactivateKeyModalProcess = ({ keyInfo, keyData, onClose, onSuccess }) => {
+const ReactivateKeyModalProcess = ({ isAddressKey, keysMap, keyInfo, keyData, onClose, onSuccess }) => {
     const [{ step, decryptedPrivateKey }, setState] = useState({ step: 0 });
     const api = useApi();
     const { call } = useEventManager();
@@ -27,25 +28,36 @@ const ReactivateKeyModalProcess = ({ keyInfo, keyData, onClose, onSuccess }) => 
         keyData,
     });
 
-    const generate = async () => {
-        const password = authenticationStore.getPassword();
-        if (!decryptedPrivateKey || !password) {
-            throw new Error('Missing private key or password');
+    const getSignedKeyList = () => {
+        if (!isAddressKey) {
+            return;
         }
-        console.log(decryptedPrivateKey);
+
+        const newKeysList = keysReducer(keysMap, reactivateKey({
+            decryptedPrivateKey,
+            fingerprint: keyInfo.fingerprint,
+            address
+        }));
+
+        return generateSignedKeyList(newKeysList);
+    };
+
+    const generate = async () => {
         try {
+            const password = authenticationStore.getPassword();
+            if (!decryptedPrivateKey || !password) {
+                throw new Error('Missing private key or password');
+            }
+
+            console.log(decryptedPrivateKey);
+
             const encryptedPrivateKey = await encryptPrivateKey(decryptedPrivateKey, password);
-            const newKeysList = keysReducer(keysList, reactivateKey({
-                decryptedPrivateKey,
-                fingerprint: keyInfo.fingerprint,
-                address
-            }));
+            const signedKeyList = await getSignedKeyList();
 
-            const SignedKeyList = await generateSignedKeyList(newKeysList);
-
-            await api(reactivateKey(keyData.ID, {
+            await api(reactivateKey({
+                KeyID: keyData.ID,
                 PrivateKey: encryptedPrivateKey,
-                SignedKeyList
+                SignedKeyList: signedKeyList
             }));
 
             await call();
@@ -96,6 +108,8 @@ const ReactivateKeyModalProcess = ({ keyInfo, keyData, onClose, onSuccess }) => 
 ReactivateKeyModalProcess.propTypes = {
     onSuccess: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired,
+    isAddressKey: PropTypes.bool.isRequired,
+    keysMap: PropTypes.object.isRequired,
     keyData: PropTypes.object.isRequired,
     keyInfo: PropTypes.object.isRequired
 };

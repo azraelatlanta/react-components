@@ -140,7 +140,6 @@ export const getAddressesKeys = (User, Addresses = [], addressesKeys = {}) => {
         const addressKeysList = getAddressKeysList(User, Address, addressesKeys[ID]);
 
         const formattedAddress = {
-            id: ID,
             email: Email,
             keys: addressKeysList
         };

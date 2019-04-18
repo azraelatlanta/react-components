@@ -24,7 +24,6 @@ const AddressKeysSection = () => {
     }, [userKeys]);
 
     const formattedUserKeys = [{
-        id: 'user',
         email: User.Name,
         keys: userKeysList
     }];
