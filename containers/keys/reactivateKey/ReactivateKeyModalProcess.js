@@ -22,6 +22,9 @@ const ReactivateKeyModalProcess = ({ isAddressKey, keysMap, keyInfo, keyData, on
     const [keySalts = [], loading] = useKeySalts();
     const authenticationStore = useAuthenticationStore();
     const { createNotification } = useNotifications();
+
+    const [targetFingerprint] = keyInfo.fingerprints;
+
     const decryptOrUploadStep = useDecryptOrUploadStep({
         keySalts,
         keyInfo,
@@ -94,7 +97,7 @@ const ReactivateKeyModalProcess = ({ isAddressKey, keysMap, keyInfo, keyData, on
     }) : [
         () => decryptOrUploadStep(handleSuccess, handleError),
         () => ({
-            title: c('Title').t`Reactivating key (${keyInfo.fingerprint})`,
+            title: c('Title').t`Reactivating key (${targetFingerprint})`,
             container:(<div>Loading...</div>),
             close: undefined
         })

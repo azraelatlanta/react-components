@@ -41,6 +41,8 @@ const AddressKeysSection = () => {
 
     const [modal, setModal] = useState();
 
+    console.log(addressesKeys)
+
     const keysCallback = useKeysActions({
         Addresses,
         addressesKeys,

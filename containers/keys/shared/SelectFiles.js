@@ -2,8 +2,7 @@ import React, { forwardRef, useRef, useEffect, useImperativeHandle } from 'react
 import PropTypes from 'prop-types';
 import { c } from 'ttag';
 import { FileInput } from 'react-components';
-
-import { parseKeys } from './selectFilesHelper';
+import { parseKeys } from 'proton-shared/lib/keys/keyImport';
 
 const SelectFiles = forwardRef(({ onFiles, autoClick }, ref) => {
     const fileRef = useRef();

@@ -9,9 +9,9 @@ import { decryptPrivateKey } from 'pmcrypto';
 import { generateUID } from '../../../helpers/component';
 import { computeKeyPassword } from 'pm-srp';
 
-export const decrypt = async ({ password, keySalt, armoredKey }) => {
+export const decrypt = async ({ password, keySalt, armoredPrivateKey }) => {
     const keyPassword = keySalt ? await computeKeyPassword(password, keySalt) : password;
-    return decryptPrivateKey(armoredKey, keyPassword);
+    return decryptPrivateKey(armoredPrivateKey, keyPassword);
 };
 
 const DecryptKey = ({ label, password, setPassword }) => {

@@ -3,7 +3,7 @@ import { c } from 'ttag';
 import PropTypes from 'prop-types';
 import { Block, PrimaryButton, Button } from 'react-components';
 
-import { getAllKeysToReactivate } from '../AddressKeysSectionModel';
+import { getAddressesKeysToReactivate } from '../AddressKeysSectionModel';
 import AddKeyModalProcess from '../addKey/AddKeyModalProcess';
 import ImportKeyModalProcess from '../importKeys/ImportKeyModalProcess';
 import ReactivateKeysModal from '../reactivateKeys/ReactivateKeysModalProcess'
@@ -28,15 +28,15 @@ export const getHeaderActions = ({
     userKeys = {},
     addressesKeys = {}
 }) => {
-    const keysToReactivate = getAllKeysToReactivate({ Addresses, User, addressesKeys, userKeys });
+    const addressesKeysToReactivate = getAddressesKeysToReactivate({ Addresses, User, addressesKeys, userKeys });
 
     const canAddKey = true;
-    const canReactivateKeys = keysToReactivate.length;
+    const canReactivateKeys = addressesKeysToReactivate.length;
 
     return [
         canAddKey && { actionType: ACTIONS.ADD },
         canAddKey && { actionType: ACTIONS.IMPORT },
-        canReactivateKeys && { actionType: ACTIONS.REACTIVATE_ALL, keysToReactivate }
+        canReactivateKeys && { actionType: ACTIONS.REACTIVATE_ALL, addressesKeysToReactivate }
     ].filter(Boolean);
 };
 
@@ -48,9 +48,12 @@ const KeyActionImport = ({ cb }) => (
     <Button onClick={cb}>{c('Action').t`Import key`}</Button>
 );
 
-const KeyActionReactivateAll = ({ cb, keysToReactivate }) => (
-    <Button onClick={cb}>{c('Action').t`Reactivate keys`} ({keysToReactivate.length})</Button>
-);
+const KeyActionReactivateAll = ({ cb, addressesKeysToReactivate }) => {
+    const total = addressesKeysToReactivate.reduce((acc, { keys }) => keys.length + acc, 0);
+    return (
+        <Button onClick={cb}>{c('Action').t`Reactivate keys`} ({total})</Button>
+    );
+};
 
 const ACTIONS_TO_COMPONENT = {
     [ACTIONS.ADD]: KeyActionAdd,

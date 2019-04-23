@@ -155,19 +155,21 @@ const getKeysToReactivate = (keys = {}) => {
     return Object.values(keys).filter(({ decryptedPrivateKey }) => !decryptedPrivateKey);
 };
 
-export const getAllKeysToReactivate = ({ Addresses, addressesKeys, userKeys }) => {
-    const allAddressesKeys = Addresses.reduce((acc, { ID }) => {
-        return acc.concat(getKeysToReactivate(addressesKeys[ID]));
-    }, []);
-    const allUserKeys = getKeysToReactivate(userKeys);
-    const keysToReactivate = allAddressesKeys.concat(allUserKeys);
-
-    const hasKeysToReactivate = !!keysToReactivate.length;
-
-    if (!hasKeysToReactivate) {
-        return [];
+const concatKeys = (arr, value) => {
+    if (!value.keys.length) {
+        return arr;
     }
+    return arr.concat(value);
+};
 
-    return keysToReactivate;
+export const getAddressesKeysToReactivate = ({ Addresses, addressesKeys, User, userKeys }) => {
+    const allAddressesKeys = Addresses.reduce((acc, Address) => {
+        const { ID } = Address;
+        const addressKeysToReactivate = getKeysToReactivate(addressesKeys[ID]);
+        return concatKeys(acc, { Address, keys: addressKeysToReactivate });
+    }, []);
+
+    const allUserKeys = { User, keys: getKeysToReactivate(userKeys) };
+    return concatKeys(allAddressesKeys, allUserKeys);
 };
 

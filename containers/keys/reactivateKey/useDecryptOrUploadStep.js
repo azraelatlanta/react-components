@@ -1,40 +1,35 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useReducer } from 'react';
 import { c } from 'ttag';
 import { PrimaryButton, Button } from 'react-components';
 
 import selectFilesReducer, {
     getInitialState as getInitialFilesState,
-    onCancelDecrypt,
-    onDecrypt, onFiles
+    cancelDecrypt,
+    keyDecrypted,
+    keyDecryptedMain,
+    keyError,
+    filesSelected
 } from '../shared/selectFilesReducer';
 import DecryptKey, { decrypt } from '../shared/DecryptKey';
 import SelectFiles from '../shared/SelectFiles';
 
 const useDecryptOrUploadStep = ({ keySalts, keyInfo, keyData }) => {
-    const selectRef = useRef();
     const [password, setPassword] = useState('');
-    const [state, setState] = useState(getInitialFilesState());
+    const [state, dispatch] = useReducer(selectFilesReducer, getInitialFilesState());
+    const selectRef = useRef();
+    const notifiedRef = useRef();
 
-    const dispatch = (action) => {
-        const nextState = selectFilesReducer(state, action);
-        setState(nextState);
-        return nextState;
+    const handleDecryptFile = async (armoredPrivateKey, fingerprint) => {
+        try {
+            setPassword('');
+            const decryptedPrivateKey = await decrypt({ armoredPrivateKey, password });
+            dispatch(keyDecrypted({ decryptedPrivateKey, fingerprint }));
+        } catch (e) {
+            dispatch(keyError(c('Error').t`Invalid decryption password`));
+        }
     };
 
-    const decryptFileStep = ({ armoredKey, info: { fingerprints: [fingerprint] }}, onSuccess, onError) => {
-        const handleDecrypt = async () => {
-            try {
-                setPassword('');
-                const decryptedPrivateKey = await decrypt({ armoredKey, password });
-                const nextState = dispatch(onDecrypt({ decryptedPrivateKey, fingerprint }));
-                if (nextState.done) {
-                    onSuccess(decryptedPrivateKey);
-                }
-            } catch (e) {
-                onError(c('Error').t`Invalid decryption password`);
-            }
-        };
-
+    const decryptFileStep = ({ armoredPrivateKey, info: { fingerprints: [fingerprint] }}) => {
         const label = c('Label').jt`Enter the password for key with fingerprint: ${<code>{fingerprint}</code>}`;
         const container = <DecryptKey label={label} password={password} setPassword={setPassword}/>;
 
@@ -42,48 +37,47 @@ const useDecryptOrUploadStep = ({ keySalts, keyInfo, keyData }) => {
             title: c('Title').t`Decrypt key`,
             container,
             submit: c('Action').t`Decrypt`,
-            onSubmit: () => handleDecrypt(),
+            onSubmit: () => handleDecryptFile(armoredPrivateKey, fingerprint),
             close: c('Action').t`Cancel`,
-            onClose: () => dispatch(onCancelDecrypt(fingerprint))
+            onClose: () => dispatch(cancelDecrypt(fingerprint))
         };
     };
 
-    const decryptKeyStep = (onSuccess, onError) => {
-        const fingerprint = keyInfo.fingerprint;
-        const { KeySalt } = keySalts.find(({ ID }) => ID === keyData.ID) || {};
+    const handleDecryptKey = async () => {
+        const { ID: keyID, PrivateKey: armoredPrivateKey } = keyData;
+        const { KeySalt: keySalt } = keySalts.find(({ ID }) => ID === keyID) || {};
+        setPassword('');
 
-        const handleFiles = (files) => {
-            setPassword('');
+        try {
+            const decryptedPrivateKey = await decrypt({
+                armoredPrivateKey,
+                keySalt,
+                password
+            });
 
-            if (files.length === 0) {
-                return onError(c('Error').t`Invalid private key file`);
-            }
+            dispatch(keyDecryptedMain({ decryptedPrivateKey, info: keyInfo }));
+        } catch (e) {
+            dispatch(keyError(c('Error').t`Invalid decryption password`));
+        }
+    };
 
-            const keysWithFingerprint = files.filter(({ info }) => info.fingerprint === fingerprint);
-            if (keysWithFingerprint.length === 0) {
-                return onError(c('Error').t`Uploaded key does not match fingerprint`);
-            }
+    const handleFiles = (files) => {
+        const [keyFingerprint] = keyInfo.fingerprints;
+        setPassword('');
 
-            const nextState = dispatch(onFiles(files));
-            if (nextState.done) {
-                onSuccess(nextState.keys[0].decryptedPrivateKey);
-            }
-        };
+        if (files.length === 0) {
+            return dispatch(keyError(c('Error').t`Invalid private key file`));
+        }
 
-        const handleDecryptKey = async () => {
-            try {
-                setPassword('');
-                const decryptedPrivateKey = await decrypt({
-                    armoredKey: keyData.PrivateKey,
-                    keySalt: KeySalt,
-                    password
-                });
-                onSuccess(decryptedPrivateKey);
-            } catch (e) {
-                onError(c('Error').t`Invalid decryption password`);
-            }
-        };
+        const keysWithFingerprint = files.filter(({ info: { fingerprints: [fingerprint]} }) => fingerprint === keyFingerprint);
+        if (keysWithFingerprint.length === 0) {
+            return dispatch(keyError(c('Error').t`Uploaded key does not match fingerprint`));
+        }
 
+        dispatch(filesSelected(keysWithFingerprint));
+    };
+
+    const decryptKeyStep = () => {
         const label = c('Label').t`Enter your previous password from before your account was reset:`;
         const container = (
             <>
@@ -112,16 +106,28 @@ const useDecryptOrUploadStep = ({ keySalts, keyInfo, keyData }) => {
     };
 
     return (onSuccess, onError) => {
-        const { keyToDecrypt, done } = state;
+        const { keyToDecryptIndex, files, done, error } = state;
+
         if (done) {
+            if (!notifiedRef.current) {
+                notifiedRef.current = true;
+                onSuccess(files[0]);
+            }
+
             return {
                 title: c('Title').t`Loading`
             }
         }
-        if (keyToDecrypt) {
-            return decryptFileStep(keyToDecrypt, onSuccess, onError);
+
+        if (keyToDecryptIndex !== -1) {
+            return decryptFileStep(files[keyToDecryptIndex]);
         }
-        return decryptKeyStep(onSuccess, onError);
+
+        if (error) {
+            onError(error);
+        }
+
+        return decryptKeyStep();
     };
 };
 

@@ -12,7 +12,7 @@ export const STATUSES = {
     DISABLED: 6
 };
 
-const KeyStatusBadge = ({ tooltip, title, type }) => (
+export const KeyStatusBadge = ({ tooltip, title, type }) => (
     <Tooltip title={tooltip}>
         <Badge type={type}>{title}</Badge>
     </Tooltip>
