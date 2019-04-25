@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {
     Label,
+    Field,
     PasswordInput,
 } from 'react-components';
 import { decryptPrivateKey } from 'pmcrypto';
@@ -26,7 +27,9 @@ const DecryptKey = ({ label, password, setPassword }) => {
     return (
         <>
             <Label htmlFor={id}>{label}</Label>
-            <PasswordInput id={id} value={password} onChange={handleChange} autoFocus={true} required/>
+            <Field>
+                <PasswordInput id={id} value={password} onChange={handleChange} autoFocus={true} required/>
+            </Field>
         </>
     );
 };

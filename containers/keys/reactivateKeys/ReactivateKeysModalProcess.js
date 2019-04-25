@@ -4,6 +4,7 @@ import { c } from 'ttag';
 import {
     Alert,
     PrimaryButton,
+    Field,
     Label,
     PasswordInput,
     useKeySalts,
@@ -43,7 +44,13 @@ const ReactivateKeysModalProcess = ({ reactivateKeys, addressesKeysToReactivate,
         }
     }, [loading, error]);
 
-    const info = (
+    const info1 = (
+        <Alert>
+            {c('Info').t`To reactivate keys, you will be prompted to enter your previous login password from before your account was reset`}
+        </Alert>
+    );
+
+    const info2 = (
         <Alert>
             {c('Info').t`If a key remains inactive, it means that the decryption password provided does not apply to the key.`}
         </Alert>
@@ -98,7 +105,9 @@ const ReactivateKeysModalProcess = ({ reactivateKeys, addressesKeysToReactivate,
     const passwordInput = (
         <>
             <Label htmlFor={passwordId}>{passwordLabel}</Label>
-            <PasswordInput id={passwordId} value={password} onChange={handlePasswordChange} autoFocus={true} required/>
+            <Field>
+                <PasswordInput id={passwordId} value={password} onChange={handlePasswordChange} autoFocus={true} required/>
+            </Field>
         </>
     );
 
@@ -108,7 +117,7 @@ const ReactivateKeysModalProcess = ({ reactivateKeys, addressesKeysToReactivate,
     }) : [
         () => ({
             title: c('Title').t`Re-activate keys`,
-            container: <ReactivateKeysList keys={processState}/>,
+            container: <>{info1}<ReactivateKeysList keys={processState}/></>,
             submit: c('Action').t`Re-activate`,
             onSubmit: () => setStep(1),
         }),
@@ -122,8 +131,8 @@ const ReactivateKeysModalProcess = ({ reactivateKeys, addressesKeysToReactivate,
             }
         }),
         () => ({
-            title: c('Title').t`Key Activation`,
-            container: <><ReactivateKeysList keys={processState}/>{info}</>,
+            title: c('Title').t`Re-activate keys`,
+            container: <><ReactivateKeysList keys={processState}/>{info2}</>,
             submit: (<PrimaryButton type="submit" disabled={!done}>{c('Action').t`Done`}</PrimaryButton>),
             onSubmit: onSuccess
         }),

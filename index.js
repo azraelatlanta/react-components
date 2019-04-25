@@ -259,5 +259,3 @@ export { useSubscription } from './models/subscriptionModel';
 export { useUser } from './models/userModel';
 export { useUserSettings } from './models/userSettingsModel';
 export { default as useKeySalts } from './models/keySaltsModel';
-
-export { default as FileInput } from './components/input/FileInput';
