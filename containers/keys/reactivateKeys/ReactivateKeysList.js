@@ -1,15 +1,37 @@
 import { c } from 'ttag';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Table, TableRow, TableHeader, TableBody } from 'react-components';
+import { Table, TableRow, TableHeader, TableBody, BadgeWithTooltip } from 'react-components';
 
-import KeysStatus, { KeyStatusBadge, STATUSES } from '../KeysStatus';
+import KeysStatus, { STATUSES } from '../KeysStatus';
 
 export const STATUS = {
-    INACTIVE: 0,
-    SUCCESS: 1,
-    LOADING: 2,
-    ERROR: 3
+    INACTIVE: 1,
+    SUCCESS: 2,
+    LOADING: 3,
+    ERROR: 4
+};
+
+export const convertStatus = (keyResult, defaultStatus) => {
+    if (typeof keyResult === 'undefined') {
+        return {
+            status: defaultStatus
+        };
+    }
+    if (keyResult instanceof Error) {
+        if (keyResult.name === 'DecryptionError') {
+            return {
+                status: STATUS.INACTIVE
+            }
+        }
+        return {
+            error: keyResult.message,
+            status: STATUS.ERROR
+        };
+    }
+    return {
+        status: STATUS.SUCCESS
+    }
 };
 
 const KeyStatusError = (error) => {
@@ -22,7 +44,7 @@ const KeyStatusError = (error) => {
 
 const getStatus = (status, error) => {
     if (status === STATUS.ERROR) {
-        return <KeyStatusBadge {...KeyStatusError(error)}/>
+        return <BadgeWithTooltip {...KeyStatusError(error)}/>
     }
     if (status === STATUS.INACTIVE || status === STATUS.ERROR) {
         return <KeysStatus statuses={[STATUSES.ENCRYPTED]} />;
@@ -30,9 +52,8 @@ const getStatus = (status, error) => {
     if (status === STATUS.SUCCESS) {
         return <KeysStatus statuses={[STATUSES.DECRYPTED]} />;
     }
-    return 'Loading'
+    return 'TODO Loading spinner'
 };
-
 
 const ReactivateKeysList = ({ keys }) => {
     const list = keys.map(({ status, fingerprint, email, error }, i) => {
@@ -42,7 +63,7 @@ const ReactivateKeysList = ({ keys }) => {
                 key={i}
                 cells={[
                     email,
-                    fingerprint,
+                    <span className="mw100 inbl ellipsis">{fingerprint}</span>,
                     keyStatus
                 ]}
             />

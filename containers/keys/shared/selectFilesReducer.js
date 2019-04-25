@@ -40,7 +40,7 @@ export const filesSelected = (files) => ({
 });
 
 const getNextState = (keys = []) => {
-    const keyToDecryptIndex = keys.length ? keys.findIndex(({ decryptedPrivateKey }) => !decryptedPrivateKey) : undefined;
+    const keyToDecryptIndex = keys.length ? keys.findIndex(({ decryptedPrivateKey }) => !decryptedPrivateKey) : -1;
     return {
         keyToDecryptIndex,
         done: keys.length && keyToDecryptIndex === -1
@@ -49,6 +49,7 @@ const getNextState = (keys = []) => {
 
 export const getInitialState = (keys = []) => {
     const uniqueKeys = uniqueBy(keys, ({ info: { fingerprints: [fingerprint]}}) => fingerprint);
+    console.log(keys, uniqueKeys);
     return {
         keys: uniqueKeys,
         ...getNextState(uniqueKeys)
@@ -57,6 +58,7 @@ export const getInitialState = (keys = []) => {
 
 export default (state, { type, payload }) => {
     if (type === ACTIONS.SELECT_FILES) {
+        console.log('select files', payload);
         return getInitialState(payload);
     }
 
@@ -96,7 +98,7 @@ export default (state, { type, payload }) => {
 
     if (type === ACTIONS.KEY_CANCELLED) {
         const targetFingerprint = payload;
-        const keys = state.keys.filter(({ info: { fingerprint: [fingerprint]}}) => (fingerprint !== targetFingerprint));
+        const keys = state.keys.filter(({ info: { fingerprints: [fingerprint]}}) => (fingerprint !== targetFingerprint));
         return {
             keys,
             ...getNextState(keys)

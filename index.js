@@ -15,6 +15,7 @@ export { default as Icons } from './components/icon/Icons';
 export { default as useToggle } from './components/toggle/useToggle';
 export { default as Toggle } from './components/toggle/Toggle';
 export { default as Badge } from './components/badge/Badge';
+export { default as BadgeWithTooltip } from './components/badge/BadgeWithTooltip';
 export { default as Bordered } from './components/container/Bordered';
 export { default as Block } from './components/container/Block';
 export { default as Row } from './components/container/Row';

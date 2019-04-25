@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { Badge, Tooltip } from 'react-components';
+import { BadgeWithTooltip } from 'react-components';
 import { c } from 'ttag';
 
 export const STATUSES = {
@@ -10,18 +10,6 @@ export const STATUSES = {
     OBSOLETE: 4,
     COMPROMISED: 5,
     DISABLED: 6
-};
-
-export const KeyStatusBadge = ({ tooltip, title, type }) => (
-    <Tooltip title={tooltip}>
-        <Badge type={type}>{title}</Badge>
-    </Tooltip>
-);
-
-KeyStatusBadge.propTypes = {
-    tooltip: PropTypes.string.isRequired,
-    title: PropTypes.string.isRequired,
-    type: PropTypes.string.isRequired
 };
 
 const KeyStatusPrimary = () => ({
@@ -76,7 +64,7 @@ const KeysStatus = ({ statuses }) => {
         if (!statusText) {
             throw new Error('Invalid status');
         }
-        return <KeyStatusBadge key={status} {...statusText()} />;
+        return <BadgeWithTooltip key={status} {...statusText()} />;
     });
     return <>{list}</>;
 };

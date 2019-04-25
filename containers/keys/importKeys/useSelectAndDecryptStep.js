@@ -12,7 +12,7 @@ import DecryptKey, { decrypt } from '../shared/DecryptKey';
 import SelectFiles from '../shared/SelectFiles';
 
 const useSelectAndDecryptStep = () => {
-    const [state, dispatch] = useReducer(selectFilesReducer, getInitialState());
+    const [state, dispatch] = useReducer(selectFilesReducer, undefined, getInitialState);
     const [password, setPassword] = useState('');
     const selectRef = useRef();
     const notifiedRef = useRef();
@@ -27,7 +27,7 @@ const useSelectAndDecryptStep = () => {
         }
     };
 
-    const decryptFileStep = ({ armoredPrivateKey, info: { fingerprint: [fingerprint] }}) => {
+    const decryptFileStep = ({ armoredPrivateKey, info: { fingerprints: [fingerprint] }}) => {
         const label = c('Label').jt`Enter the password for key with fingerprint: ${<code>{fingerprint}</code>}`;
 
         return {
@@ -67,12 +67,12 @@ const useSelectAndDecryptStep = () => {
     };
 
     return (onSuccess, onError) => {
-        const { keyToDecryptIndex, files, done, error } = state;
+        const { keyToDecryptIndex, keys, done, error } = state;
 
         if (done) {
             if (!notifiedRef.current) {
                 notifiedRef.current = true;
-                onSuccess(files);
+                onSuccess(keys);
             }
 
             return {
@@ -81,7 +81,7 @@ const useSelectAndDecryptStep = () => {
         }
 
         if (keyToDecryptIndex !== -1) {
-            return decryptFileStep(files[keyToDecryptIndex]);
+            return decryptFileStep(keys[keyToDecryptIndex]);
         }
 
         if (error) {

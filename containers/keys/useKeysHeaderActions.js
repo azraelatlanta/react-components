@@ -82,23 +82,14 @@ const addKeyHelper = async ({
     return newAddressKeys;
 };
 
-const reactivateOrAddKey = async ({
+const reactivateOrAddKeyHelper = async ({
     Address,
     key: { info, decryptedPrivateKey, armoredPrivateKey },
+    maybeOldKey,
     keys,
     api
 }) => {
-    const oldAddressKeysList = Object.values(keys);
-    const [keyFingerprint] = info.fingerprints;
-    const maybeOldKey = oldAddressKeysList.find(({ info: { fingerprints: [fingerprint]} }) => {
-        return keyFingerprint === fingerprint;
-    });
-
-    // Key already exists and is decrypted, ignore it.
-    if (maybeOldKey && maybeOldKey.decryptedPrivateKey) {
-        return keys;
-    }
-
+    return true;
     if (maybeOldKey) {
         const oldKeyID = maybeOldKey.Key.ID;
         return reactivateKeyHelper({
@@ -115,6 +106,58 @@ const reactivateOrAddKey = async ({
         keys,
         api
     });
+};
+
+const reactivateOrAddKeysHelper = async ({
+    Address,
+    User,
+    keys,
+    decryptedKeys,
+    password,
+    api
+}) => {
+    const email = Address ? Address.Email : User.Email;
+
+    const results = {};
+    for (const resultID of Object.keys(decryptedKeys)) {
+        try {
+            const oldDecryptedPrivateKey = decryptedKeys[resultID];
+
+            // TODO: pmcrypto does not return the new decryptedPrivateKey when reformatting.
+            const armoredPrivateKey = await reformatKey(oldDecryptedPrivateKey, email, password);
+            const decryptedPrivateKey = await decryptPrivateKey(armoredPrivateKey, password);
+            const info = await getKeyInfoLight(decryptedPrivateKey);
+
+            const oldAddressKeysList = Object.values(keys);
+            const [keyFingerprint] = info.fingerprints;
+            const maybeOldKey = oldAddressKeysList.find(({ info: { fingerprints: [fingerprint]} }) => {
+                return keyFingerprint === fingerprint;
+            });
+
+            // Key already exists and is decrypted, ignore it.
+            if (maybeOldKey && maybeOldKey.decryptedPrivateKey) {
+                throw new Error(c('Message').t`Key exists and is decrypted`);
+            }
+
+            // Reactivate or add key for imports
+            keys = await reactivateOrAddKeyHelper({
+                Address,
+                key: { info, decryptedPrivateKey, armoredPrivateKey },
+                maybeOldKey,
+                keys,
+                api
+            });
+
+            results[resultID] = {
+                message: maybeOldKey ?
+                    c('Message').t`Key reactivated` :
+                    c('Message').t`Key created`
+            };
+        } catch (e) {
+            results[resultID] = e;
+        }
+    }
+    return results;
 };
 
 const useKeysActions = ({ User, userKeys, Addresses, addressesKeys, modal, setModal }) => {
@@ -153,7 +196,7 @@ const useKeysActions = ({ User, userKeys, Addresses, addressesKeys, modal, setMo
             await call();
 
             createNotification({
-                text: c('Success').t`Private key added for ${Address.Email}`,
+                text: c('Success').t`Private key added for ${Email}`,
                 type: 'success'
             });
         };
@@ -181,63 +224,23 @@ const useKeysActions = ({ User, userKeys, Addresses, addressesKeys, modal, setMo
     };
 
     const handleImportKeys = () => {
-        const handle = async ({ address, files }) => {
-            const { ID: AddressID, Email } = address;
-            const password = authenticationStore.getPassword();
+        const password = authenticationStore.getPassword();
 
-            const handleKey = async (email, keys, preDecryptedPrivateKey) => {
-                if (!preDecryptedPrivateKey) {
-                    throw new Error(c('Error').t`Invalid decryption password`);
-                }
-
-                // TODO: pmcrypto does not return the new decryptedPrivateKey when reformatting.
-                const armoredPrivateKey = await reformatKey(preDecryptedPrivateKey, Email, password);
-                const decryptedPrivateKey = await decryptPrivateKey(armoredPrivateKey, password);
-                const info = await getKeyInfoLight(decryptedPrivateKey);
-
-                return await reactivateOrAddKey({
-                    address,
-                    key: { info, decryptedPrivateKey, armoredPrivateKey },
-                    keys,
-                    api
-                });
-            };
-
-            let keys = addressesKeys[AddressID];
-
-            for (let i = 0; i < files.length; ++i) {
-                const {
-                    decryptedPrivateKey: decryptedKeyFile
-                } = files[i];
-                try {
-                    keys = await handleKey(address.Email, keys, decryptedKeyFile);
-                } catch (e) {
-                    console.log(e);
-                }
-            }
-
-            await call();
-
-            createNotification({
-                text: c('Success').t`Private key imported for ${address.Email}`,
-                type: 'success'
-            });
-        };
-
-        const onSuccess = async (result) => {
-            try {
-                await handle(result);
-                resetModal();
-            } catch (e) {
-                console.log(e);
-                resetModal();
-            }
+        const handleImportKeys = ({ Address, decryptedKeys }) => {
+            return reactivateOrAddKeysHelper({
+                Address,
+                keys: Address ? addressesKeys[Address.ID] : userKeys,
+                decryptedKeys,
+                api,
+                password
+            })
         };
 
         const modal = (
             <ImportKeyModalProcess
-                onSuccess={onSuccess}
+                onSuccess={resetModal}
                 onClose={resetModal}
+                importKeys={handleImportKeys}
                 Addresses={Addresses}
             />
         );
@@ -248,46 +251,22 @@ const useKeysActions = ({ User, userKeys, Addresses, addressesKeys, modal, setMo
     const handleReactivateAll = ({ addressesKeysToReactivate }) => {
         const password = authenticationStore.getPassword();
 
-        const reactivateKeys = async ({ Address, addressKeysToReactivate }) => {
-            const results = [];
-
-            const handleKey = async (email, keys, preDecryptedPrivateKey) => {
-                if (!preDecryptedPrivateKey) {
-                    throw new Error(c('Error').t`Invalid decryption password`);
-                }
-
-                // TODO: pmcrypto does not return the new decryptedPrivateKey when reformatting.
-                const armoredPrivateKey = await reformatKey(preDecryptedPrivateKey, Email, password);
-                const decryptedPrivateKey = await decryptPrivateKey(armoredPrivateKey, password);
-                const info = await getKeyInfoLight(decryptedPrivateKey);
-
-                return reactivateKeyHelper({
-                    Address,
-                    key: { info, decryptedPrivateKey, armoredPrivateKey },
-                    keys,
-                    api
-                });
-            };
-
-            let keys = Address ? addressesKeys[Address.ID] : userKeys;
-            const email = Address ? Address.Email : User.Email;
-
-            for (let i = 0; i < addressKeysToReactivate.length; ++i) {
-                try {
-                    keys = await handleKey(email, keys, addressKeysToReactivate[i]);
-                    results.push();
-                } catch (e) {
-                    results.push(e);
-                    console.log(e);
-                }
-            }
+        const handleReactivateKeys = ({ User, Address, decryptedKeys }) => {
+            return reactivateOrAddKeysHelper({
+                Address,
+                User,
+                keys: Address ? addressesKeys[Address.ID] : userKeys,
+                decryptedKeys,
+                api,
+                password
+            })
         };
 
         const modal = (
             <ReactivateKeysModalProcess
                 onSuccess={resetModal}
                 onClose={resetModal}
-                reactivateKeys={reactivateKeys}
+                reactivateKeys={handleReactivateKeys}
                 addressesKeysToReactivate={addressesKeysToReactivate}
             />
         );

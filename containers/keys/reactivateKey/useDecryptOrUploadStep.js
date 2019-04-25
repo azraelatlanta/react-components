@@ -30,6 +30,7 @@ const useDecryptOrUploadStep = ({ keySalts, keyInfo, keyData }) => {
     };
 
     const decryptFileStep = ({ armoredPrivateKey, info: { fingerprints: [fingerprint] }}) => {
+        console.log('wtf', armoredPrivateKey, fingerprint)
         const label = c('Label').jt`Enter the password for key with fingerprint: ${<code>{fingerprint}</code>}`;
         const container = <DecryptKey label={label} password={password} setPassword={setPassword}/>;
 
@@ -106,12 +107,12 @@ const useDecryptOrUploadStep = ({ keySalts, keyInfo, keyData }) => {
     };
 
     return (onSuccess, onError) => {
-        const { keyToDecryptIndex, files, done, error } = state;
+        const { keyToDecryptIndex, keys, done, error } = state;
 
         if (done) {
             if (!notifiedRef.current) {
                 notifiedRef.current = true;
-                onSuccess(files[0]);
+                onSuccess(keys[0]);
             }
 
             return {
@@ -120,7 +121,8 @@ const useDecryptOrUploadStep = ({ keySalts, keyInfo, keyData }) => {
         }
 
         if (keyToDecryptIndex !== -1) {
-            return decryptFileStep(files[keyToDecryptIndex]);
+            console.log(keys[keyToDecryptIndex], keyToDecryptIndex);
+            return decryptFileStep(keys[keyToDecryptIndex]);
         }
 
         if (error) {

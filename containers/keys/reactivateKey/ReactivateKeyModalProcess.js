@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { c } from 'ttag';
 
-import { reactivateKey } from 'proton-shared/lib/api/keys';
 import {
     useAuthenticationStore,
     useNotifications,

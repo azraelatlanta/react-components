@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { c } from 'ttag';
-import { useNotifications } from 'react-components';
+import { c, msgid } from 'ttag';
+import { useNotifications, PrimaryButton } from 'react-components';
 
 import SelectAddress from '../shared/SelectAddress';
 import RenderModal from '../shared/RenderModal';
 import Warning from './Warning';
 import useSelectAndDecryptStep from './useSelectAndDecryptStep';
+import ImportKeysList, { STATUS, convertStatus } from './ImportKeysList';
 
 const getInitialState = (Addresses) => {
     if (Addresses.length === 1) {
@@ -21,18 +22,40 @@ const getInitialState = (Addresses) => {
     }
 };
 
-const ImportKeyModalProcess = ({ Addresses, onSuccess, onClose }) => {
+const getState = (files = [], results = {}) => {
+    return files.map(({ info }) => {
+        const [fingerprint] = info.fingerprints;
+        return {
+            fingerprint,
+            ...convertStatus(results[fingerprint], STATUS.LOADING)
+        };
+    })
+};
+
+const ImportKeyModalProcess = ({ Addresses, importKeys, onSuccess, onClose }) => {
     const [state, setState] = useState(getInitialState(Addresses));
     const { createNotification } = useNotifications();
     const selectAndDecryptStep = useSelectAndDecryptStep();
+    const [done, setDone] = useState(false);
 
     const [addressIndex, setAddressIndex] = useState(0);
     const { step, address } = state;
+    const [list, setList] = useState([]);
 
-    const handleSelectFiles = (files) => {
-        const nextState = { ...state, files, step: 3 };
-        setState(nextState);
-        onSuccess(nextState);
+    const handleSelectFiles = async (files = []) => {
+        setList(getState(files, {}));
+        setState({ ...state, step: 3 });
+
+        const decryptedKeys = files.reduce((acc, { info, decryptedPrivateKey }) => {
+            const [fingerprint] = info.fingerprints;
+            acc[fingerprint] = decryptedPrivateKey;
+            return acc;
+        }, {});
+
+        const results = await importKeys({ Address: address, decryptedKeys });
+
+        setList(getState(files, results));
+        setDone(true);
     };
 
     const handleError = (text) => {
@@ -53,10 +76,15 @@ const ImportKeyModalProcess = ({ Addresses, onSuccess, onClose }) => {
             onSubmit: () => setState({ ...state, address, step: 2 })
         }),
         () => selectAndDecryptStep(handleSelectFiles, handleError),
-        () => ({
-            title: c('Title').t`Importing key`,
-            container: (<div>Loading...</div>)
-        })
+        () => {
+            const n = list.length;
+            return {
+                title: c('Title').ngettext(msgid`Import key`, `Import ${n} keys`, n),
+                container: (<ImportKeysList keys={list}/>),
+                submit: (<PrimaryButton type="submit" disabled={!done}>{c('Action').t`Done`}</PrimaryButton>),
+                onSubmit: onSuccess
+            }
+        }
     ][step]();
 
     const close = c('Action').t`Close`;
@@ -67,6 +95,7 @@ const ImportKeyModalProcess = ({ Addresses, onSuccess, onClose }) => {
 ImportKeyModalProcess.propTypes = {
     onSuccess: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired,
+    importKeys: PropTypes.func.isRequired,
     Addresses: PropTypes.array.isRequired
 };
 

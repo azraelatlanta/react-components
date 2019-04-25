@@ -18,7 +18,11 @@ const AddressKeysRow = ({ email, fingerprint, type, children }) => {
 
     return (
         <>
-            <TableRow cells={[<AddressKeysEmail key={0} />, fingerprint, type]} />
+            <TableRow cells={[
+                <AddressKeysEmail key={0} />,
+                <span className="mw100 inbl ellipsis">{fingerprint}</span>,
+                type
+            ]}/>
             {expanded ? (
                 <tr>
                     <TableCell colSpan={3}>{children}</TableCell>

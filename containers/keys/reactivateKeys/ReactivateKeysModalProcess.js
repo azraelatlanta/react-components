@@ -1,102 +1,95 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { c } from 'ttag';
 import {
-    useAuthenticationStore,
-    useNotifications,
-    Info,
+    Alert,
     PrimaryButton,
     Label,
     PasswordInput,
     useKeySalts,
 } from 'react-components';
 
-import ReactivateKeysList, { STATUS } from './ReactivateKeysList';
+import ReactivateKeysList, { STATUS, convertStatus } from './ReactivateKeysList';
 import RenderModal from '../shared/RenderModal';
+import { decrypt } from '../shared/DecryptKey';
 
-const getAddressKeys = ({ Address, User, keys }, status) => {
-    return keys.map(({ info }) => {
-        return {
-            email: User ? User.Name : Address.Email,
-            fingerprint: info.fingerprints[0],
-            status
-        }
-    });
-};
-
-const getStatus = (keyResult) => {
-    if (keyResult instanceof Error) {
-        return {
-            error: keyResult.name,
-            status: STATUS.ERROR
-        };
-    }
-    return {
-        status: STATUS.SUCCESS
-    }
-};
-
-const getState = (addressesKeysToReactivate, allResults, status = STATUS.LOADING) => {
-    return addressesKeysToReactivate.reduce((acc, value, i) => {
-        const results = allResults[i];
-
-        const addressKeys = getAddressKeys(value, status);
-        if (!results) {
-            return addressKeys;
-        }
-
-        return addressKeys.map((key, j) => {
+const getState = (addressesKeysToReactivate, resultMap, defaultStatus = STATUS.LOADING) => {
+    return addressesKeysToReactivate.reduce((acc, value) => {
+        const { Address, User, keys } = value;
+        const addressID = Address ? Address.ID : User.ID;
+        const results = resultMap[addressID] || {};
+        return acc.concat(keys.map(({ info }) => {
+            const [fingerprint] = info.fingerprints;
             return {
-                ...key,
-                ...getStatus(results[j])
+                email: User ? User.Name : Address.Email,
+                fingerprint,
+                ...convertStatus(results[fingerprint], defaultStatus)
             }
-        });
+        }));
     }, []);
 };
 
 const ReactivateKeysModalProcess = ({ reactivateKeys, addressesKeysToReactivate, onSuccess, onClose }) => {
-    const [keySalts = [], loading] = useKeySalts();
+    const [keySalts = [], loading, error] = useKeySalts();
     const [step, setStep] = useState(0);
     const [password, setPassword] = useState('');
-    const [processState, setProcessState] = useState(() => getState(addressesKeysToReactivate, [], STATUS.INACTIVE));
+    const [processState, setProcessState] = useState(() => getState(addressesKeysToReactivate, {}, STATUS.INACTIVE));
     const [done, setDone] = useState(false);
 
+    // If fetching key salts failed close the modal
+    useEffect(() => {
+        if (!loading && error) {
+            onClose();
+        }
+    }, [loading, error]);
+
     const info = (
-        <Info>
+        <Alert>
             {c('Info').t`If a key remains inactive, it means that the decryption password provided does not apply to the key.`}
-        </Info>
+        </Alert>
     );
 
-    const handleDecryptKey = async ({ Key }) => {
-        const { ID: keyID, PrivateKey: armoredPrivateKey } = Key;
+    const handleDecryptKey = async ({ ID: keyID, PrivateKey: armoredPrivateKey }) => {
         const { KeySalt: keySalt } = keySalts.find(({ ID }) => ID === keyID) || {};
         return decrypt({
             armoredPrivateKey,
             keySalt,
             password
-        }).catch(() => {});
+        });
     };
 
     const startProcess = async () => {
-        const allResults = [];
+        const resultMap = {};
+        setProcessState(getState(addressesKeysToReactivate, resultMap));
 
-        setProcessState(getState(addressesKeysToReactivate, allResults));
+        for (const { User, Address, keys } of addressesKeysToReactivate) {
+            const maybeDecryptedKeys = await Promise.all(keys.map(({ Key }) => handleDecryptKey(Key)
+                .then((key) => [key, undefined])
+                .catch((e) => [undefined, e]))
+            );
+            const [decryptedKeys, decryptionErrorResults] = keys.reduce((acc, { info }, i) => {
+                const [fingerprint] = info.fingerprints;
+                const [decryptedPrivateKey, error] = maybeDecryptedKeys[i];
 
-        for (const { Address, keys } of addressesKeysToReactivate) {
-            const decryptedKeys = await Promise.all(keys.map(handleDecryptKey));
-            const results = await reactivateKeys({ Address, decryptedKeys });
-            allResults.push(results);
-            setProcessState(getState(addressesKeysToReactivate, allResults));
+                const value = error ? error : decryptedPrivateKey;
+                const idx = error ? 1 : 0;
+
+                acc[idx][fingerprint] = value;
+
+                return acc;
+            }, [{}, {}]);
+
+            const reactivationResults = await reactivateKeys({ User, Address, decryptedKeys });
+
+            const addressID = Address ? Address.ID : User.ID;
+            resultMap[addressID] = {
+                ...reactivationResults,
+                ...decryptionErrorResults
+            };
+            setProcessState(getState(addressesKeysToReactivate, resultMap));
         }
 
         setDone(true);
-    };
-
-    const handleDone = () => {
-        if (!done) {
-            return;
-        }
-        onSuccess();
     };
 
     const handlePasswordChange = ({ target }) => setPassword(target.value);
@@ -132,7 +125,7 @@ const ReactivateKeysModalProcess = ({ reactivateKeys, addressesKeysToReactivate,
             title: c('Title').t`Key Activation`,
             container: <><ReactivateKeysList keys={processState}/>{info}</>,
             submit: (<PrimaryButton type="submit" disabled={!done}>{c('Action').t`Done`}</PrimaryButton>),
-            onSubmit: handleDone
+            onSubmit: onSuccess
         }),
     ][step]();
 

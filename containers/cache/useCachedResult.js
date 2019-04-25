@@ -40,7 +40,6 @@ const load = (cache, key, miss) => {
 
 /**
  * Return record from the cache. Triggers it to load in case none exists.
- * Throws an error in case it's been rejected.
  * @param {Object} cache
  * @param {String} key
  * @param {Function} miss
@@ -48,20 +47,18 @@ const load = (cache, key, miss) => {
  */
 const readCache = (cache, key, miss) => {
     if (cache.has(key)) {
-        const record = cache.get(key);
-
-        if (record.status === STATUS.REJECTED) {
-            throw record.value;
-        }
-
-        return record;
+        // Could potentially throw here to have support for suspense
+        return cache.get(key);
     }
-
     return load(cache, key, miss);
 };
 
 const getState = ({ value, status }) => {
-    return [status === STATUS.RESOLVED ? value : undefined, status === STATUS.PENDING];
+    return [
+        status === STATUS.RESOLVED ? value : undefined,
+        status === STATUS.PENDING,
+        status === STATUS.REJECTED ? value : undefined
+    ];
 };
 
 /**

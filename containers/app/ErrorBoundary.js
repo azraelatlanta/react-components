@@ -19,12 +19,15 @@ class ErrorBoundary extends React.Component {
     }
 
     render() {
+        const error = this.state.error ? this.state.error.toString() : undefined;
+        console.log(this.state.error);
         if (this.state.hasError) {
+            debugger
             // You can render any custom fallback UI
             return (
                 <>
                     <h1>Something went wrong.</h1>
-                    <span>{this.state.error.stack.toString()}</span>
+                    <span>{error}</span>
                 </>
             );
         }

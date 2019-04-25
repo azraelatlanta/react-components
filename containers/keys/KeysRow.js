@@ -3,7 +3,16 @@ import React from 'react';
 import { TableRow } from 'react-components';
 
 const KeysRow = ({ fingerprint, type, status, actions }) => {
-    return <TableRow key={fingerprint} cells={[fingerprint.substr(0,2), type, status, actions]} />;
+    return (
+        <TableRow
+            key={fingerprint}
+            cells={[
+                <span className="mw100 inbl ellipsis">{fingerprint}</span>,
+                type,
+                status,
+                actions
+            ]}/>
+    );
 };
 
 KeysRow.propTypes = {
