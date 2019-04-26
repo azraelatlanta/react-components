@@ -1,7 +1,7 @@
 import { c } from 'ttag';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Table, TableRow, TableHeader, TableBody, BadgeWithTooltip } from 'react-components';
+import { LoaderIcon, Table, TableRow, TableHeader, TableBody, BadgeWithTooltip } from 'react-components';
 
 export const STATUS = {
     SUCCESS: 1,
@@ -42,7 +42,7 @@ const getStatus = (status, message) => {
     if (status === STATUS.SUCCESS) {
         return <BadgeWithTooltip {...getSuccess(message) }/>
     }
-    return 'TODO Loading spinner'
+    return <LoaderIcon/>
 };
 
 const ImportKeysList = ({ keys }) => {

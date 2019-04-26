@@ -1,11 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 import { DropdownActions } from 'react-components';
 import { c } from 'ttag';
-import { KEY_FILE_EXTENSION } from 'proton-shared/lib/constants';
-
-import ExportKeyModal from './exportKey/ExportKeyModal';
-import ReactivateKeyModalProcess from './reactivateKey/ReactivateKeyModalProcess';
 
 export const ACTIONS = {
     PRIMARY: 1,

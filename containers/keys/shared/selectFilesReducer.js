@@ -3,18 +3,8 @@ import { uniqueBy } from 'proton-shared/lib/helpers/array';
 export const ACTIONS = {
     SELECT_FILES: 1,
     KEY_DECRYPTED: 2,
-    KEY_DECRYPTED_MAIN: 3,
-    KEY_ERROR: 4,
-    KEY_CANCELLED: 5,
+    KEY_CANCELLED: 5
 };
-
-export const keyDecryptedMain = ({ decryptedPrivateKey, info }) => ({
-    type: ACTIONS.KEY_DECRYPTED_MAIN,
-    payload: {
-        decryptedPrivateKey,
-        info
-    }
-});
 
 export const keyDecrypted = ({ decryptedPrivateKey, fingerprint }) => ({
     type: ACTIONS.KEY_DECRYPTED,
@@ -22,11 +12,6 @@ export const keyDecrypted = ({ decryptedPrivateKey, fingerprint }) => ({
         decryptedPrivateKey,
         fingerprint
     }
-});
-
-export const keyError = (error) => ({
-    type: ACTIONS.KEY_ERROR,
-    payload: error
 });
 
 export const cancelDecrypt = (fingerprint) => ({
@@ -40,16 +25,15 @@ export const filesSelected = (files) => ({
 });
 
 const getNextState = (keys = []) => {
-    const keyToDecryptIndex = keys.length ? keys.findIndex(({ decryptedPrivateKey }) => !decryptedPrivateKey) : -1;
+    const keyToDecrypt = keys.find(({ decryptedPrivateKey }) => !decryptedPrivateKey);
     return {
-        keyToDecryptIndex,
-        done: keys.length && keyToDecryptIndex === -1
+        keyToDecrypt,
+        done: keys.length && !keyToDecrypt
     }
 };
 
 export const getInitialState = (keys = []) => {
     const uniqueKeys = uniqueBy(keys, ({ info: { fingerprints: [fingerprint]}}) => fingerprint);
-    console.log(keys, uniqueKeys);
     return {
         keys: uniqueKeys,
         ...getNextState(uniqueKeys)
@@ -58,18 +42,7 @@ export const getInitialState = (keys = []) => {
 
 export default (state, { type, payload }) => {
     if (type === ACTIONS.SELECT_FILES) {
-        console.log('select files', payload);
         return getInitialState(payload);
-    }
-
-    if (type === ACTIONS.KEY_DECRYPTED_MAIN) {
-        const { info, decryptedPrivateKey } = payload;
-
-        const keys = [{ decryptedPrivateKey, info }];
-        return {
-            keys,
-            ...getNextState(keys)
-        }
     }
 
     if (type === ACTIONS.KEY_DECRYPTED) {
@@ -84,15 +57,6 @@ export default (state, { type, payload }) => {
         return {
             keys,
             ...getNextState(keys)
-        }
-    }
-
-    if (type === ACTIONS.KEY_ERROR) {
-        return {
-            ...state,
-            error: payload,
-            // Force a new state to trigger refresh in case the error is the same
-            errorCounter: state.errorCounter ? state.errorCounter + 1 : 1
         }
     }
 

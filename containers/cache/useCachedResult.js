@@ -47,8 +47,11 @@ const load = (cache, key, miss) => {
  */
 const readCache = (cache, key, miss) => {
     if (cache.has(key)) {
-        // Could potentially throw here to have support for suspense
-        return cache.get(key);
+        const record = cache.get(key);
+        // Force a refresh if status is rejected
+        if (record.status !== STATUS.REJECTED) {
+            return record;
+        }
     }
     return load(cache, key, miss);
 };

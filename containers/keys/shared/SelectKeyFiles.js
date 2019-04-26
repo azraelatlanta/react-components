@@ -4,7 +4,7 @@ import { c } from 'ttag';
 import { FileInput } from 'react-components';
 import { parseKeyFiles } from 'proton-shared/lib/keys/keyImport';
 
-const SelectFiles = forwardRef(({ onFiles, autoClick }, ref) => {
+const SelectKeyFiles = forwardRef(({ onFiles, autoClick, multiple }, ref) => {
     const fileRef = useRef();
 
     const handleFileImport = async ({ target }) => {
@@ -30,8 +30,8 @@ const SelectFiles = forwardRef(({ onFiles, autoClick }, ref) => {
         <FileInput
             accept='.txt,.asc'
             ref={fileRef}
-            className={'hidden'}
-            multiple={true}
+            className="hidden"
+            multiple={multiple}
             onChange={handleFileImport}
         >
             {c('Select files').t`Upload`}
@@ -39,9 +39,14 @@ const SelectFiles = forwardRef(({ onFiles, autoClick }, ref) => {
     );
 });
 
-SelectFiles.propTypes = {
+SelectKeyFiles.propTypes = {
     onFiles: PropTypes.func.isRequired,
-    autoClick: PropTypes.bool
+    autoClick: PropTypes.bool,
+    multiple: PropTypes.bool
 };
 
-export default SelectFiles;
+SelectKeyFiles.defaultProps = {
+    multiple: false
+};
+
+export default SelectKeyFiles;

@@ -1,6 +1,6 @@
 import React from 'react';
 import ExportKeyModal from './exportKey/ExportKeyModal';
-import ReactivateKeyModalProcess from './reactivateKey/ReactivateKeyModalProcess';
+import ReactivateKeysModalProcess from './reactivateKeys/ReactivateKeysModalProcess';
 import { ACTIONS } from './KeysActions';
 import { KEY_FILE_EXTENSION } from 'proton-shared/lib/constants';
 
@@ -19,7 +19,7 @@ const useKeysActions = ({ User, Addresses, addressesKeys, userKeys, modal, setMo
 
     const handleExport = ({ key, address }) => {
         const name = address ? address.Email : User.Name;
-        const { decryptedPrivateKey, info: { fingerprint: [fingerprint] } } = key;
+        const { decryptedPrivateKey, info: { fingerprints: [fingerprint] } } = key;
 
         const filename = ['privatekey.', name, '-', fingerprint, KEY_FILE_EXTENSION].join('');
 
@@ -39,7 +39,7 @@ const useKeysActions = ({ User, Addresses, addressesKeys, userKeys, modal, setMo
         const { Key, info } = key;
 
         const modal = (
-            <ReactivateKeyModalProcess
+            <ReactivateKeysModalProcess
                 isAddressKey={!!address}
                 keysMap={address ? addressesKeys[address.ID] : undefined}
                 keyData={Key}

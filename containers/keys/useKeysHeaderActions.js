@@ -13,7 +13,7 @@ import { addKey, reactivateKey } from 'proton-shared/lib/keys/keysReducerActions
 import getSignedKeyList from 'proton-shared/lib/keys/getSignedKeyList';
 
 const reactivateKeyHelper = async ({
-    Address: { Receive = 1 } = {}, // For contact keys, default to be Receive true
+    Address,
     keys,
     key: {
         ID,
@@ -23,6 +23,9 @@ const reactivateKeyHelper = async ({
     },
     api
 }) => {
+    const isAddressKey = !!Address;
+    const { Receive = 1 } = Address || {}; // For contact keys, default to be Receive true to set the correct flags
+
     const newKeys = keysReducer(keys, reactivateKey({
         ID,
         canReceive: Receive,
@@ -32,9 +35,10 @@ const reactivateKeyHelper = async ({
 
     const { Key: { Primary }} = newKeys[ID];
 
-    const signedKeyList = await getSignedKeyList(newKeys);
+    const signedKeyList = isAddressKey ? await getSignedKeyList(newKeys) : undefined;
 
     const route = reactivateKeyRoute({
+        ID,
         Primary,
         PrivateKey: armoredPrivateKey,
         SignedKeyList: signedKeyList
@@ -89,12 +93,11 @@ const reactivateOrAddKeyHelper = async ({
     keys,
     api
 }) => {
-    return true;
     if (maybeOldKey) {
         const oldKeyID = maybeOldKey.Key.ID;
         return reactivateKeyHelper({
             Address,
-            key: { info, armoredPrivateKey, decryptedPrivateKey, ID: oldKeyID },
+            key: { ID: oldKeyID, info, armoredPrivateKey, decryptedPrivateKey },
             keys,
             api
         })
@@ -116,13 +119,12 @@ const reactivateOrAddKeysHelper = async ({
     password,
     api
 }) => {
+    const results = {};
+
     const email = Address ? Address.Email : User.Email;
 
-    const results = {};
-    for (const resultID of Object.keys(decryptedKeys)) {
+    for (const [resultID, oldDecryptedPrivateKey] of Object.entries(decryptedKeys)) {
         try {
-            const oldDecryptedPrivateKey = decryptedKeys[resultID];
-
             // TODO: pmcrypto does not return the new decryptedPrivateKey when reformatting.
             const armoredPrivateKey = await reformatKey(oldDecryptedPrivateKey, email, password);
             const decryptedPrivateKey = await decryptPrivateKey(armoredPrivateKey, password);
@@ -139,14 +141,16 @@ const reactivateOrAddKeysHelper = async ({
                 throw new Error(c('Message').t`Key exists and is decrypted`);
             }
 
-            // Reactivate or add key for imports
-            keys = await reactivateOrAddKeyHelper({
-                Address,
-                key: { info, decryptedPrivateKey, armoredPrivateKey },
-                maybeOldKey,
-                keys,
-                api
-            });
+            if (false) {
+                // Reactivate or add key for imports
+                keys = await reactivateOrAddKeyHelper({
+                    Address,
+                    key: { info, decryptedPrivateKey, armoredPrivateKey },
+                    maybeOldKey,
+                    keys,
+                    api
+                });
+            }
 
             results[resultID] = {
                 message: maybeOldKey ?
@@ -157,6 +161,7 @@ const reactivateOrAddKeysHelper = async ({
             results[resultID] = e;
         }
     }
+
     return results;
 };
 

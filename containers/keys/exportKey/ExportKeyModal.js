@@ -4,6 +4,7 @@ import { c } from 'ttag';
 import {
     Alert,
     Row,
+    Field,
     Label,
     PasswordInput,
 } from 'react-components';
@@ -37,7 +38,9 @@ const ExportKeyModal = ({ filename, decryptedPrivateKey, onClose, onSuccess }) =
             <Alert>{notificationText}</Alert>
             <Row>
                 <Label htmlFor={id}>{label}</Label>
-                <PasswordInput id={id} value={password} onChange={handleChange} autoFocus={true} required/>
+                <Field>
+                    <PasswordInput id={id} value={password} onChange={handleChange} autoFocus={true} required/>
+                </Field>
             </Row>
         </>
     );

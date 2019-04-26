@@ -1,4 +1,7 @@
+import { KEY_FLAG } from 'proton-shared/lib/constants';
 import { describe } from 'proton-shared/lib/keys/keysAlgorithm';
+
+const { SIGNED, ENCRYPTED, ENCRYPTED_AND_SIGNED, CLEAR_TEXT } = KEY_FLAG;
 
 import { STATUSES } from './KeysStatus';
 import { ACTIONS } from './KeysActions';
@@ -8,13 +11,14 @@ const getKeyStatus = ({ decryptedPrivateKey, Key, isPrimary, Address = {} }) => 
     const { Status } = Address;
 
     const isDecrypted = !!decryptedPrivateKey;
+    const isDisabled = Status === 0;
 
     return {
         isPrimary,
         isDecrypted,
-        isCompromised: isDecrypted && Flags > 0 && Flags < 3 && Status !== 0,
-        isObsolete: Flags === 0,
-        isDisabled: Status === 0
+        isCompromised: Flags === CLEAR_TEXT,
+        isObsolete: isDecrypted && !isDisabled && Flags === SIGNED,
+        isDisabled
     }
 };
 
@@ -33,7 +37,8 @@ const getKeyActions = ({ User, Address = {}, isAddressKey, Key, keyStatus }) => 
     const {
         isPrimary,
         isDecrypted,
-        isCompromised
+        isCompromised,
+        isObsolete
     } = keyStatus;
 
     const { isSubUser } = User;
@@ -46,9 +51,8 @@ const getKeyActions = ({ User, Address = {}, isAddressKey, Key, keyStatus }) => 
     const canMakePrimary = !isPrimary && isDecrypted && Flags === 3 && Status !== 0;
 
     const canMark = isAddressKey;
-    // TODO: There is one MARK OBSOLETE case to investigate when Flags === 0 for addresses
-    const canMarkObsolete = canMark && Flags > 1 && Status !== 0;
-    const canMarkCompromised = canMark && Flags !== 0;
+    const canMarkObsolete = canMark && isDecrypted && !isObsolete && !isCompromised;
+    const canMarkCompromised = canMark && !isCompromised;
     const canMarkValid = canMark && isCompromised;
 
     return [
