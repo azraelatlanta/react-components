@@ -46,7 +46,7 @@ const DecryptFileKeyModal = ({ fingerprint, armoredPrivateKey, onSuccess, onClos
         </>
     );
 
-    return <RenderModal {...{
+    const props = {
         title: c('Title').t`Decrypt key`,
         container,
         submit: (
@@ -69,7 +69,9 @@ const DecryptFileKeyModal = ({ fingerprint, armoredPrivateKey, onSuccess, onClos
         },
         close: c('Action').t`Cancel`,
         onClose
-    }}/>
+    };
+
+    return <RenderModal {...props}/>
 
 };
 

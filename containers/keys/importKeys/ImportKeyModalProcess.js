@@ -111,7 +111,7 @@ const ImportKeyModalProcess = ({ Addresses, importKeys, onSuccess, onClose }) =>
             title: c('Title').t`Import key`,
             container: <ImportWarning/>,
             submit: c('Action').t`Yes`,
-            onSubmit: () => setState({ ...state, step: address ? 2 : 1 }),
+            onSubmit: () => setState({ ...state, step: address ? 1 : 1 }),
         }),
         () => ({
             title: c('Title').t`Select address`,

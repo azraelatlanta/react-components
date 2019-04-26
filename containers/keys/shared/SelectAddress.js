@@ -5,6 +5,7 @@ import {
     Select,
     Alert,
     Label,
+    Field
 } from 'react-components';
 
 const SelectAddress = ({ Addresses, addressIndex, setAddressIndex }) => {
@@ -22,12 +23,14 @@ const SelectAddress = ({ Addresses, addressIndex, setAddressIndex }) => {
         <>
             <Alert>{notificationText}</Alert>
             <Label htmlFor={selectId}>{label}</Label>
-            <Select
-                id={selectId}
-                value={addressIndex}
-                options={options}
-                onChange={({ target }) => setAddressIndex(target.value)}
-            />
+            <Field>
+                <Select
+                    id={selectId}
+                    value={addressIndex}
+                    options={options}
+                    onChange={({ target }) => setAddressIndex(target.value)}
+                />
+            </Field>
         </>
     );
 };
