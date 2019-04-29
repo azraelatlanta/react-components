@@ -5,6 +5,7 @@ import {
     Alert,
     SubTitle,
     Row,
+    Field,
     Label,
     Info,
     Toggle,
@@ -18,12 +19,12 @@ const AddressVerificationSection = () => {
     const { call } = useEventManager();
     const [mailSettings] = useMailSettings();
     const { state, toggle } = useToggle(!!mailSettings.PromptPin);
-    const { request } = useApiWithoutResult(updatePromptPin);
+    const { request, loading } = useApiWithoutResult(updatePromptPin);
 
     const handleChange = async ({ target }) => {
         const newValue = target.checked;
         await request(+newValue);
-        await call();
+        call();
         toggle();
     };
 
@@ -43,7 +44,9 @@ const AddressVerificationSection = () => {
                             .t`When receiving an internal message from a sender that has no trusted keys in your contacts, show a banner asking if you want to enable trusted keys.`}
                     />
                 </Label>
-                <Toggle id="trustToggle" checked={state} onChange={handleChange} />
+                <Field>
+                    <Toggle id="trustToggle" loading={loading} checked={state} onChange={handleChange} />
+                </Field>
             </Row>
         </>
     );

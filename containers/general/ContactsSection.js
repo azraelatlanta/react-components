@@ -3,6 +3,7 @@ import { c } from 'ttag';
 import {
     SubTitle,
     Row,
+    Field,
     Label,
     Toggle,
     Info,
@@ -22,7 +23,7 @@ const ContactsSection = () => {
     const { state, toggle } = useToggle(!!AutoSaveContacts);
     const handleChange = async ({ target }) => {
         await request(+target.checked);
-        await call();
+        call();
         toggle();
         createNotification({ text: c('Success').t`Preference saved` });
     };
@@ -34,7 +35,9 @@ const ContactsSection = () => {
                     {c('Label').t`Automatically save contacts`}{' '}
                     <Info url="https://protonmail.com/support/knowledge-base/autosave-contact-list/" />
                 </Label>
-                <Toggle id="saveContactToggle" disabled={loading} checked={state} onChange={handleChange} />
+                <Field>
+                    <Toggle id="saveContactToggle" loading={loading} checked={state} onChange={handleChange} />
+                </Field>
             </Row>
         </>
     );
