@@ -16,7 +16,7 @@ import useKeysActions from './useKeysActions';
 const AddressKeysSection = () => {
     const [User] = useUser();
     const [Addresses, loadingAddresses] = useAddresses();
-    const [userKeys, loadingUserKeys] = useUserKeys(User);
+    const [userKeys, loadingUserKeys] = useKeys(User);
     const [addressesKeys, loadingAddressesKeys] = useAddressesKeys(User, Addresses);
 
     const userKeysList = useMemo(() => {
@@ -30,7 +30,7 @@ const AddressKeysSection = () => {
 
     const formattedAddressesKeys = useMemo(() => {
         return getAddressesKeys(User, Addresses, addressesKeys)
-    }, [Addresses, addressesKeys]);
+    }, [User, Addresses, addressesKeys]);
 
     const headerActions = getHeaderActions({
         User,

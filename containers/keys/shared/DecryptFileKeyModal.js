@@ -24,7 +24,8 @@ export const decrypt = async ({ password, keySalt, armoredPrivateKey }) => {
 
 const DecryptFileKeyModal = ({ fingerprint, armoredPrivateKey, onSuccess, onClose }) => {
     const id = generateUID('decryptKey');
-    const label = c('Label').jt`Enter the password for key with fingerprint: ${<code>{fingerprint}</code>}`;
+    const fingerprintCode = (<code>{fingerprint}</code>);
+    const label = c('Label').jt`Enter the password for key with fingerprint: ${fingerprintCode}`;
 
     const [password, setPassword] = useState('');
     const [decrypting, setDecrypting] = useState(false);

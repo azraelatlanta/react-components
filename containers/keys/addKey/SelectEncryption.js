@@ -19,17 +19,21 @@ const getWarning = (encryptionType) => {
 };
 
 const SelectEncryption = ({ encryptionType, setEncryptionType }) => {
+    const highSecurity = <strong key="1">${c('encryption').t`High security`}</strong>;
+    const highestSecurity = <strong key="2">${c('encryption').t`Highest security`}</strong>;
+    const stateOfTheArt = <strong key="3">${c('encryption').t`State of the art`}</strong>;
+
     const radios = [
         {
-            label: c('form option heading').jt`${<strong>High security</strong>} RSA2048-bit (Older but faster)`,
+            label: c('form option heading').jt`${highSecurity} RSA2048-bit (Older but faster)`,
             value: RSA2048
         },
         {
-            label: c('form option heading').jt`${<strong>Highest security</strong>} RSA 4096-bit (Secure but slow)`,
+            label: c('form option heading').jt`${highestSecurity} RSA 4096-bit (Secure but slow)`,
             value: RSA4096
         },
         {
-            label: c('form option heading').jt`${<strong>State-of-the-art</strong>} X25519 (Modern, fastest, secure)`,
+            label: c('form option heading').jt`${stateOfTheArt} X25519 (Modern, fastest, secure)`,
             value: X25519
         },
     ];

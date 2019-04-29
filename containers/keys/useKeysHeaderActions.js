@@ -10,6 +10,7 @@ import { useApi, useEventManager, useAuthenticationStore, useNotifications } fro
 import { reactivateOrAddKeysHelper, addKeyHelper } from 'proton-shared/lib/keys/keysActions';
 
 const useKeysActions = ({ User, userKeys, Addresses, addressesKeys, modal, setModal }) => {
+    const keysManager = useKeysManager();
     const api = useApi();
     const { call } = useEventManager();
     const authenticationStore = useAuthenticationStore();
@@ -21,25 +22,14 @@ const useKeysActions = ({ User, userKeys, Addresses, addressesKeys, modal, setMo
 
     const handleAddKey = async () => {
         const handle = async ({ address, encryption: { config: encryptionConfig }}) => {
-            const { ID: AddressID, Email } = address;
+            const { Email } = address;
             const password = authenticationStore.getPassword();
-            const oldAddressKeys = addressesKeys[AddressID];
 
-            const { key: decryptedPrivateKey, privateKeyArmored: armoredPrivateKey } = await generateKey({
-                // TODO: Use the user name?
-                userIds: [{ name: Email, email: Email }],
-                email: Email,
-                passphrase: password,
-                ...encryptionConfig
-            });
-
-            const info = await getKeyInfoLight(decryptedPrivateKey);
-
-            await addKeyHelper({
+            await keysManager.createAddressKey({
                 Address: address,
-                key: { info, decryptedPrivateKey, armoredPrivateKey },
-                keys: oldAddressKeys,
-                api
+                password,
+                api,
+                encryptionConfig
             });
 
             await call();
@@ -75,21 +65,21 @@ const useKeysActions = ({ User, userKeys, Addresses, addressesKeys, modal, setMo
     const handleImportKeys = () => {
         const password = authenticationStore.getPassword();
 
-        const handleImportKeys = ({ Address, decryptedKeys }) => {
-            return reactivateOrAddKeysHelper({
+        const handleImportKey = ({ Address, decryptedKey }) => {
+            return keysManager.importKey({
                 Address,
-                keys: Address ? addressesKeys[Address.ID] : userKeys,
-                decryptedKeys,
-                api,
-                password
-            })
+                User,
+                password,
+                oldDecryptedPrivateKey: decryptedKey,
+                api
+            });
         };
 
         const modal = (
             <ImportKeyModalProcess
                 onSuccess={resetModal}
                 onClose={resetModal}
-                importKeys={handleImportKeys}
+                importKey={handleImportKey}
                 Addresses={Addresses}
             />
         );
@@ -100,22 +90,21 @@ const useKeysActions = ({ User, userKeys, Addresses, addressesKeys, modal, setMo
     const handleReactivateAll = ({ addressesKeysToReactivate }) => {
         const password = authenticationStore.getPassword();
 
-        const handleReactivateKeys = ({ User, Address, decryptedKeys }) => {
-            return reactivateOrAddKeysHelper({
+        const handleReactivateKey = ({ User, Address, decryptedKey }) => {
+            return keysManager.reactivateKey({
                 Address,
                 User,
-                keys: Address ? addressesKeys[Address.ID] : userKeys,
-                decryptedKeys,
-                api,
-                password
-            })
+                password,
+                oldDecryptedPrivateKey: decryptedKey,
+                api
+            });
         };
 
         const modal = (
             <ReactivateKeysModalProcess
                 onSuccess={resetModal}
                 onClose={resetModal}
-                reactivateKeys={handleReactivateKeys}
+                reactivateKey={handleReactivateKey}
                 addressesKeysToReactivate={addressesKeysToReactivate}
             />
         );

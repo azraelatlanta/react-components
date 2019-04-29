@@ -80,8 +80,10 @@ const OldPasswordStep = ({ password, setPassword }) => {
     );
 };
 
-const ReactivateKeysModalProcess = ({ reactivateKeys, addressesKeysToReactivate, onSuccess, onClose }) => {
+const ReactivateKeysModalProcess = ({ addressesKeysToReactivate, onSuccess, onClose }) => {
     const api = useApi();
+    const keysManager = useKeysManager();
+    const authenticationStore = useAuthenticationStore();
     const { createNotification } = useNotifications();
     const [step, setStep] = useState(0);
     const [processState, setProcessState] = useState(() => getState({ addressesKeysToReactivate, status: STATUS.INACTIVE }));
@@ -103,7 +105,9 @@ const ReactivateKeysModalProcess = ({ reactivateKeys, addressesKeysToReactivate,
         setResultMap(processResultMap);
         setLoading(true);
 
-        // TODO: USE THE UPLOADED MAP
+        const x = `
+        `;
+
         const keySalts = mode === 'password' ? await api(getKeySalts()).then(({ KeySalts }) => KeySalts) : {};
 
         const handleDecryptKey = ({ Key, info }) => {
@@ -111,45 +115,42 @@ const ReactivateKeysModalProcess = ({ reactivateKeys, addressesKeysToReactivate,
             if (mode === 'backup') {
                 const backupDecryptedKey = uploadedMap[info.fingerprints[0]];
                 if (!backupDecryptedKey) {
-                    return [undefined, createDecryptionError()];
+                    throw new createDecryptionError();
                 }
-                return [backupDecryptedKey, undefined];
+                return backupDecryptedKey;
             }
 
             const { ID: keyID, PrivateKey } = Key;
             const { KeySalt: keySalt } = keySalts.find(({ ID }) => ID === keyID) || {};
 
-            return decrypt({ armoredPrivateKey: PrivateKey, keySalt, password })
-                .then((key) => [key, undefined])
-                .catch((e) => [undefined, e])
+            return decrypt({ armoredPrivateKey: PrivateKey, keySalt, password });
         };
 
         for (const { User, Address, keys } of addressesKeysToReactivate) {
-            const maybeDecryptedKeys = await Promise.all(keys.map(handleDecryptKey));
 
-            const [decryptedKeys, decryptionErrorResults] = keys.reduce((acc, { info }, i) => {
-                const [fingerprint] = info.fingerprints;
-                const [decryptedPrivateKey, error] = maybeDecryptedKeys[i];
-
-                const value = error ? error : decryptedPrivateKey;
-                const idx = error ? 1 : 0;
-
-                acc[idx][fingerprint] = value;
-
-                return acc;
-            }, [{}, {}]);
-
-            const reactivationResults = await reactivateKeys({ User, Address, decryptedKeys });
-
-            const addressID = Address ? Address.ID : User.ID;
-            processResultMap = {
-                ...processResultMap,
-                [addressID]: {
-                    ...reactivationResults,
-                    ...decryptionErrorResults
+            const handleKey = async (key) => {
+                try {
+                    const decryptedKey = await handleDecryptKey(key);
+                    return await keysManager.reactivateKey({
+                        User,
+                        Address,
+                        oldDecryptedPrivateKey: decryptedKey,
+                        password: authenticationStore.getPassword(),
+                        api
+                    });
+                } catch (e) {
+                    return e;
                 }
             };
-            setResultMap(processResultMap);
+
+            for (const key of keys) {
+                const keyID = key.Key.ID;
+                resultMap = {
+                    ...resultMap,
+                    [keyID]: await handleKey(key)
+                };
+                setResultMap(resultMap);
+            }
         }
 
         setLoading(false);
@@ -166,16 +167,16 @@ const ReactivateKeysModalProcess = ({ reactivateKeys, addressesKeysToReactivate,
         }));
     }, [resultMap, uploadedMap]);
 
+    const handleDecryptedUploadedKey = ({ info, decryptedPrivateKey }) => {
+        const [fingerprint] = info.fingerprints;
+
+        setUploadedMap({
+            ...uploadedMap,
+            [fingerprint]: decryptedPrivateKey
+        });
+    };
+
     const currentStep = (() => {
-        const handleDecryptedUploadedKey = ({ info, decryptedPrivateKey }) => {
-            const [fingerprint] = info.fingerprints;
-
-            setUploadedMap({
-                ...uploadedMap,
-                [fingerprint]: decryptedPrivateKey
-            });
-        };
-
         if (step === 0) {
             return {
                 title: c('Title').t`Re-activate keys`,
