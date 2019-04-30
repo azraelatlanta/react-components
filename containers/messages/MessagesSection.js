@@ -1,19 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { c } from 'ttag';
 import { SubTitle, Row, Field, Label, Info, useMailSettings } from 'react-components';
 
 import RemoteToggle from './RemoteToggle';
 import EmbeddedToggle from './EmbeddedToggle';
+import ShowMovedToggle from './ShowMovedToggle';
+import RequestLinkConfirmationToggle from './RequestLinkConfirmationToggle';
 
 const MessagesSection = () => {
-    const [mailSettings] = useMailSettings();
-    const [showImages, setShowImages] = useState(mailSettings.ShowImages);
-
-    // Handle updates from the Event Manager.
-    useEffect(() => {
-        setShowImages(mailSettings.ShowImages);
-    }, [mailSettings.ShowImages]);
-
+    const [{ ShowImages } = {}] = useMailSettings();
+    const [showImages, setShowImages] = useState(ShowImages);
     const handleChange = (newValue) => setShowImages(newValue);
 
     return (
@@ -35,6 +31,25 @@ const MessagesSection = () => {
                 </Label>
                 <Field>
                     <EmbeddedToggle id="embeddedToggle" showImages={showImages} onChange={handleChange} />
+                </Field>
+            </Row>
+            <Row>
+                <Label htmlFor="showMovedToggle">
+                    <span className="mr1">{c('Label').t`Sent/Drafts`}</span>
+                    <Info
+                        title={c('Tooltip')
+                            .t`Setting to 'Include moved' means that sent / drafts messages that have been moved to other folders will continue to appear in the Sent/Drafts folder.`}
+                    />
+                </Label>
+                <Field>
+                    <ShowMovedToggle id="showMovedToggle" />
+                    <Label htmlFor="showMovedToggle" className="ml1">{c('Label').t`Include moved`}</Label>
+                </Field>
+            </Row>
+            <Row>
+                <Label htmlFor="requestLinkConfirmationToggle">{c('Label').t`Request link confirmation`}</Label>
+                <Field>
+                    <RequestLinkConfirmationToggle id="requestLinkConfirmationToggle" />
                 </Field>
             </Row>
         </>
