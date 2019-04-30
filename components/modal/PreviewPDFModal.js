@@ -21,7 +21,7 @@ const PreviewPDFModal = ({ show, onClose, url, title, filename }) => {
 PreviewPDFModal.propTypes = {
     show: PropTypes.bool.isRequired,
     onClose: PropTypes.func.isRequired,
-    url: PropTypes.string.isRequired,
+    url: PropTypes.string,
     title: PropTypes.string,
     filename: PropTypes.string
 };
