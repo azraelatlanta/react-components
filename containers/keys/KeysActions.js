@@ -3,15 +3,7 @@ import PropTypes from 'prop-types';
 import { DropdownActions } from 'react-components';
 import { c } from 'ttag';
 
-export const ACTIONS = {
-    PRIMARY: 1,
-    DELETE: 2,
-    EXPORT: 3,
-    REACTIVATE: 4,
-    MARK_COMPROMISED: 5,
-    MARK_OBSOLETE: 6,
-    MARK_VALID: 7
-};
+import { ACTIONS } from './useKeysActions';
 
 const KeyActionExport = () => ({
     text: c('Keys actions').t`Export`

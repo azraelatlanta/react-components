@@ -1,10 +1,35 @@
 import React from 'react';
 import ExportKeyModal from './exportKey/ExportKeyModal';
 import ReactivateKeysModalProcess from './reactivateKeys/ReactivateKeysModalProcess';
-import { ACTIONS } from './KeysActions';
 import { KEY_FILE_EXTENSION } from 'proton-shared/lib/constants';
 
-const useKeysActions = ({ User, Addresses, addressesKeys, userKeys, modal, setModal }) => {
+export const ACTIONS = {
+    PRIMARY: 1,
+    DELETE: 2,
+    EXPORT: 3,
+    REACTIVATE: 4,
+    MARK_COMPROMISED: 5,
+    MARK_OBSOLETE: 6,
+    MARK_VALID: 7,
+    ADD_KEY: 8,
+    REACTIVATE_KEYS: 9,
+    IMPORT_KEYS: 10
+};
+
+const HEADER_ACTIONS = [
+    ACTIONS.ADD_KEY,
+    ACTIONS.REACTIVATE_KEYS,
+    ACTIONS.IMPORT_KEYS
+];
+
+const useKeysActions = ({
+    User,
+    Addresses,
+    addressesKeysMap,
+    userKeysList,
+    modal,
+    setModal
+}) => {
     const resetModal = () => setModal();
 
     const getAddress = (addressID) => {
@@ -13,8 +38,8 @@ const useKeysActions = ({ User, Addresses, addressesKeys, userKeys, modal, setMo
 
     const getKey = (addressID, keyID) => {
         return addressID ?
-            addressesKeys[addressID][keyID] :
-            userKeys[keyID];
+            addressesKeysMap[addressID].find(({ ID }) => ID === keyID) :
+            userKeysList.find(({ Key: { ID } }) => ID === keyID);
     };
 
     const handleExport = ({ key, address }) => {
@@ -31,44 +56,70 @@ const useKeysActions = ({ User, Addresses, addressesKeys, userKeys, modal, setMo
                 onSuccess={resetModal}
             />
         );
-
         setModal(modal);
     };
 
     const handleReactivate = ({ key, address }) => {
-        const { Key, info } = key;
-
         const modal = (
             <ReactivateKeysModalProcess
-                isAddressKey={!!address}
-                keysMap={address ? addressesKeys[address.ID] : undefined}
-                keyData={Key}
-                keyInfo={info}
-                onClose={resetModal}
                 onSuccess={resetModal}
+                onClose={resetModal}
+                addressesKeysToReactivate={[{ Address: address, keys: [key] }]}
             />
         );
-
         setModal(modal);
     };
 
+    const handleAddKey = async () => {
+        const modal = (<AddKeyModalProcess onSuccess={onSuccess} onClose={resetModal}/>);
+        setModal(modal);
+    };
+
+    const handleImportKeys = () => {
+        const modal = (<ImportKeyModalProcess onSuccess={resetModal} onClose={resetModal}/>);
+        setModal(modal);
+    };
+
+    const handleReactivateAll = ({ addressesKeysToReactivate }) => {
+        const modal = (
+            <ReactivateKeysModalProcess
+                onSuccess={resetModal}
+                onClose={resetModal}
+                addressesKeysToReactivate={addressesKeysToReactivate}
+            />
+        );
+
+        return setModal(modal);
+    };
+
     const ACTIONS_TO_HANDLER = {
+        [ACTIONS.ADD_KEY]: handleAddKey,
+        [ACTIONS.IMPORT_KEYS]: handleImportKeys,
+        [ACTIONS.REACTIVATE_KEYS]: handleReactivateAll,
         [ACTIONS.EXPORT]: handleExport,
         [ACTIONS.REACTIVATE]: handleReactivate
     };
 
-    return ({ actionType, keyID, addressID }) => {
+    return ({ actionType, keyID, addressID, ...rest }) => {
         if (modal) {
             return;
         }
+
         if (!ACTIONS_TO_HANDLER[actionType]) {
             throw new Error('unsupported action');
         }
+
+        if (HEADER_ACTIONS.includes(actionType)) {
+            return ACTIONS_TO_HANDLER[actionType](rest);
+        }
+
         const key = getKey(addressID, keyID);
         const address = getAddress(addressID);
+
         if (!key || (addressID && !address)) {
             throw new Error('Could not find address or key');
         }
+
         ACTIONS_TO_HANDLER[actionType]({ key, address });
     };
 };

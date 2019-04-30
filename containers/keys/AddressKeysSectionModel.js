@@ -4,7 +4,7 @@ import { describe } from 'proton-shared/lib/keys/keysAlgorithm';
 const { SIGNED, ENCRYPTED, ENCRYPTED_AND_SIGNED, CLEAR_TEXT } = KEY_FLAG;
 
 import { STATUSES } from './KeysStatus';
-import { ACTIONS } from './KeysActions';
+import { ACTIONS } from './useKeysActions';
 
 const getKeyStatus = ({ decryptedPrivateKey, Key, isPrimary, Address = {} }) => {
     const { Flags } = Key;
@@ -67,6 +67,32 @@ const getKeyActions = ({ User, Address = {}, isAddressKey, Key, keyStatus }) => 
         .filter(Boolean);
 };
 
+/**
+ * Get the action that can be performed in the header of the section.
+ * @param {Array} Addresses
+ * @param {Object} User
+ * @param {Array} userKeysList
+ * @param {Object} addressesKeysMap
+ * @returns {Array}
+ */
+export const getKeyHeaderActions = ({
+    Addresses = [],
+    User = {},
+    userKeysList = [],
+    addressesKeysMap = {}
+}) => {
+    const addressesKeysToReactivate = getAddressesKeysToReactivate({ Addresses, User, addressesKeysMap, userKeysList });
+
+    const canAddKey = true;
+    const canReactivateKeys = addressesKeysToReactivate.length;
+
+    return [
+        canAddKey && { actionType: ACTIONS.ADD_KEY },
+        canAddKey && { actionType: ACTIONS.IMPORT_KEYS },
+        canReactivateKeys && { actionType: ACTIONS.REACTIVATE_KEYS, addressesKeysToReactivate }
+    ].filter(Boolean);
+};
+
 export const convertKey = ({
     User,
     Address,
@@ -106,8 +132,8 @@ export const convertKey = ({
     }
 };
 
-export const getUserKeysList = (User, userKeys = {}) => {
-    return Object.values(userKeys).map(({ decryptedPrivateKey, info, Key }) => {
+export const getUserKeysList = (User, userKeys = []) => {
+    return userKeys.map(({ decryptedPrivateKey, info, Key }) => {
         return convertKey({
             User,
             isAddressKey: false,
@@ -121,8 +147,8 @@ export const getUserKeysList = (User, userKeys = {}) => {
     });
 };
 
-export const getAddressKeysList = (User, Address, addressKeys = {}) => {
-    return Object.values(addressKeys).map(({ decryptedPrivateKey, info, Key }) => {
+export const getAddressKeysList = (User, Address, addressKeys = []) => {
+    return addressKeys.map(({ decryptedPrivateKey, info, Key }) => {
         return convertKey({
             User,
             Address,
@@ -155,8 +181,8 @@ export const getAddressesKeys = (User, Addresses = [], addressesKeys = {}) => {
 };
 
 
-const getKeysToReactivate = (keys = {}) => {
-    return Object.values(keys).filter(({ decryptedPrivateKey }) => !decryptedPrivateKey);
+const getKeysToReactivate = (keys = []) => {
+    return keys.filter(({ decryptedPrivateKey }) => !decryptedPrivateKey);
 };
 
 const concatKeys = (arr, value) => {
@@ -166,14 +192,14 @@ const concatKeys = (arr, value) => {
     return arr.concat(value);
 };
 
-export const getAddressesKeysToReactivate = ({ Addresses, addressesKeys, User, userKeys }) => {
+export const getAddressesKeysToReactivate = ({ Addresses, addressesKeysMap, User, userKeysList }) => {
     const allAddressesKeys = Addresses.reduce((acc, Address) => {
         const { ID } = Address;
-        const addressKeysToReactivate = getKeysToReactivate(addressesKeys[ID]);
+        const addressKeysToReactivate = getKeysToReactivate(addressesKeysMap[ID]);
         return concatKeys(acc, { Address, keys: addressKeysToReactivate });
     }, []);
 
-    const allUserKeys = { User, keys: getKeysToReactivate(userKeys) };
+    const allUserKeys = { User, keys: getKeysToReactivate(userKeysList) };
     return concatKeys(allAddressesKeys, allUserKeys);
 };
 

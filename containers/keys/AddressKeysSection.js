@@ -1,90 +1,86 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useLayoutEffect } from 'react';
 import { c } from 'ttag';
 
+import { useCachedAsyncResult } from 'react-components';
 import AddressKeysHeader from './addressesKeysHeader/AddressKeysHeader';
 import AddressKeysHeaderActions, { getHeaderActions } from './addressesKeysHeader/AddressKeysHeaderActions';
 import ContactKeysHeader from './ContactKeysHeader';
 import AddressKeysTable from './AddressKeysTable';
-import { getAddressesKeys, getUserKeysList } from './AddressKeysSectionModel';
-import useUserKeys from '../../models/userKeysModel';
-import useAddressesKeys from '../../models/addressesKeysModel';
+import { getAddressesKeys, getAddressKeysList, getKeyHeaderActions, getUserKeysList } from './AddressKeysSectionModel';
+import useGetKeys from '../../models/useKeys';
 import { useUser } from '../../models/userModel';
 import { useAddresses } from '../../models/addressesModel';
-import useKeysHeaderActions from './useKeysHeaderActions';
 import useKeysActions from './useKeysActions';
+import KeysTable from './KeysTable';
 
 const AddressKeysSection = () => {
     const [User] = useUser();
     const [Addresses, loadingAddresses] = useAddresses();
-    const [userKeys, loadingUserKeys] = useKeys(User);
-    const [addressesKeys, loadingAddressesKeys] = useAddressesKeys(User, Addresses);
+    const getKeysByID = useGetKeys();
 
-    const userKeysList = useMemo(() => {
-        return getUserKeysList(User, userKeys)
-    }, [userKeys]);
+    const [userKeysList, loadingUserKeys] = useCachedAsyncResult('USER_KEYS', () => {
+        return getKeysByID(User.ID, User.Keys);
+    }, [User]);
 
-    const formattedUserKeys = [{
-        email: User.Name,
-        keys: userKeysList
-    }];
+    const [addressesKeysMap, loadingAddressesKeys] = useCachedAsyncResult('ADDRESSES_KEYS', async () => {
+        const addresses = Addresses || [];
+        const keys = await Promise.all(addresses.map((Address) => {
+            return getKeysByID(Address.ID, Address.Keys);
+        }));
+        return addresses.reduce((acc, { ID }, i) => {
+            return {
+                ...acc,
+                [ID]: keys[i]
+            }
+        }, {});
+    }, [Addresses]);
+
+    const formattedUserKeys = useMemo(() => {
+        return getUserKeysList(User, userKeysList);
+    }, [userKeysList]);
 
     const formattedAddressesKeys = useMemo(() => {
-        return getAddressesKeys(User, Addresses, addressesKeys)
-    }, [User, Addresses, addressesKeys]);
-
-    const headerActions = getHeaderActions({
-        User,
-        Addresses,
-        userKeys,
-        addressesKeys
-    });
+        const addresses = Addresses || [];
+        return addresses.reduce((acc, { ID }) => {
+            acc[ID] = getAddressKeysList(User, Addresses, addressesKeysMap[ID]);
+            return acc;
+        }, {});
+    }, [addressesKeysMap]);
 
     const [modal, setModal] = useState();
 
-    console.log(addressesKeys)
-
-    const keysCallback = useKeysActions({
-        Addresses,
-        addressesKeys,
+    const headerActions = getKeyHeaderActions({
         User,
-        userKeys,
-        modal,
-        setModal
+        userKeysList,
+        Addresses,
+        addressesKeysMap,
     });
 
-    const headerCallback = useKeysHeaderActions({
-        Addresses,
-        addressesKeys,
+    const keysCallback = useKeysActions({
         User,
-        userKeys,
+        userKeysList,
+        Addresses,
+        addressesKeysMap,
         modal,
         setModal
     });
 
     const loadingAll = loadingAddresses || loadingUserKeys || loadingAddressesKeys;
 
-    const userTableTitle = c('Title').t`User`;
-    const addressTableTitle = c('Title').t`Email`;
-
     return (
         <>
             {modal}
             <AddressKeysHeader/>
-            {loadingAll ? null: <AddressKeysHeaderActions actions={headerActions} onAction={headerCallback} />}
+            {loadingAll ? null: <AddressKeysHeaderActions actions={headerActions} onAction={keysCallback} />}
             <AddressKeysTable
                 loading={loadingAddresses || loadingAddressesKeys}
-                addressKeys={formattedAddressesKeys}
-                title={addressTableTitle}
+                Addresses={Addresses}
+                addressesKeys={formattedAddressesKeys}
                 onAction={keysCallback}
             />
 
             <ContactKeysHeader/>
-            <AddressKeysTable
-                loading={loadingUserKeys}
-                addressKeys={formattedUserKeys}
-                title={userTableTitle}
-                onAction={keysCallback}
-            />
+            <KeysTable keys={formattedUserKeys} onAction={keysCallback} />
         </>
     );
 };

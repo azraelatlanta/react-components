@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useCachedResult, useCache, useAuthenticationStore } from 'react-components';
-import { prepareUserKeys } from 'proton-shared/lib/keys/keys';
+import { prepareKeys } from 'proton-shared/lib/keys/keys';
 import validateDependencies from './helpers/validateDependencies';
 
 const KEY = 'userKeys';
@@ -9,17 +9,16 @@ const useUserKeys = (User) => {
     const cache = useCache();
     const authenticationStore = useAuthenticationStore();
 
-    validateDependencies(cache, KEY, [User]);
+    const dependency = [User.Keys];
+    validateDependencies(cache, KEY, dependency);
 
     const load = useCallback(() => {
-        const { value: previousValue } = cache.get(KEY) || {};
-        return prepareUserKeys({
-            UserKeys: User.Keys,
+        return prepareKeys({
+            Keys: User.Keys,
             keyPassword: authenticationStore.getPassword(),
-            OrganizationPrivateKey: User.OrganizationPrivateKey,
-            cache: previousValue
+            OrganizationPrivateKey: User.OrganizationPrivateKey
         });
-    }, [User]);
+    }, dependency);
 
     return useCachedResult(cache, KEY, load);
 };

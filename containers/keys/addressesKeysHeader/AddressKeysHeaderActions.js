@@ -1,44 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { c } from 'ttag';
 import PropTypes from 'prop-types';
 import { Block, PrimaryButton, Button } from 'react-components';
 
 import { getAddressesKeysToReactivate } from '../AddressKeysSectionModel';
-import AddKeyModalProcess from '../addKey/AddKeyModalProcess';
-import ImportKeyModalProcess from '../importKeys/ImportKeyModalProcess';
-import ReactivateKeysModal from '../reactivateKeys/ReactivateKeysModalProcess'
+import { ACTIONS } from '../useKeysActions';
 
-export const ACTIONS = {
-    ADD: 1,
-    IMPORT: 2,
-    REACTIVATE_ALL: 3
-};
-
-/**
- * Get the action that can be performed in the header of the section.
- * @param {Array} Addresses
- * @param {Object} User
- * @param {Object} userKeys
- * @param {Object} addressesKeys
- * @returns {Array}
- */
-export const getHeaderActions = ({
-    Addresses = [],
-    User = {},
-    userKeys = {},
-    addressesKeys = {}
-}) => {
-    const addressesKeysToReactivate = getAddressesKeysToReactivate({ Addresses, User, addressesKeys, userKeys });
-
-    const canAddKey = true;
-    const canReactivateKeys = addressesKeysToReactivate.length;
-
-    return [
-        canAddKey && { actionType: ACTIONS.ADD },
-        canAddKey && { actionType: ACTIONS.IMPORT },
-        canReactivateKeys && { actionType: ACTIONS.REACTIVATE_ALL, addressesKeysToReactivate }
-    ].filter(Boolean);
-};
 
 const KeyActionAdd = ({ cb }) => (
     <PrimaryButton onClick={cb}>{c('Action').t`Add new key`}</PrimaryButton>
@@ -56,9 +23,9 @@ const KeyActionReactivateAll = ({ cb, addressesKeysToReactivate }) => {
 };
 
 const ACTIONS_TO_COMPONENT = {
-    [ACTIONS.ADD]: KeyActionAdd,
-    [ACTIONS.IMPORT]: KeyActionImport,
-    [ACTIONS.REACTIVATE_ALL]: KeyActionReactivateAll,
+    [ACTIONS.ADD_KEY]: KeyActionAdd,
+    [ACTIONS.IMPORT_KEYS]: KeyActionImport,
+    [ACTIONS.REACTIVATE_KEYS]: KeyActionReactivateAll,
 };
 
 const AddressKeysHeaderActions = ({ actions = [], onAction }) => {

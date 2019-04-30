@@ -88,18 +88,6 @@ const useKeysActions = ({ User, userKeys, Addresses, addressesKeys, modal, setMo
     };
 
     const handleReactivateAll = ({ addressesKeysToReactivate }) => {
-        const password = authenticationStore.getPassword();
-
-        const handleReactivateKey = ({ User, Address, decryptedKey }) => {
-            return keysManager.reactivateKey({
-                Address,
-                User,
-                password,
-                oldDecryptedPrivateKey: decryptedKey,
-                api
-            });
-        };
-
         const modal = (
             <ReactivateKeysModalProcess
                 onSuccess={resetModal}
