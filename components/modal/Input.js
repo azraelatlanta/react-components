@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { c } from 'ttag';
-import { ResetButton, PrimaryButton, Input, Label, Row, Field } from 'react-components';
+import { ResetButton, PrimaryButton, Input, TextArea, Label, Row, Field } from 'react-components';
 
 import Modal from './Modal';
 import Footer from './Footer';
@@ -17,6 +17,7 @@ Good candidates:
 */
 
 const InputModal = ({
+    isTextArea,
     label,
     title,
     input: initialInput,
@@ -33,22 +34,37 @@ const InputModal = ({
     const handleChange = ({ target }) => set(target.value);
     const handleSubmit = () => onSubmit(input);
 
+    useEffect(() => {
+        set(initialInput);
+    }, [show]);
+
+    const InputField = isTextArea ? (
+        <TextArea
+            id={id}
+            value={input}
+            placeholder={placeholder}
+            onChange={handleChange}
+            autoFocus={true}
+            readOnly={loading}
+            required
+        />
+    ) : (
+        <Input
+            id={id}
+            value={input}
+            placeholder={placeholder}
+            onChange={handleChange}
+            autoFocus={true}
+            readOnly={loading}
+            required
+        />
+    );
     return (
         <Modal show={show} onClose={onClose} title={title} type="small">
             <Content onSubmit={handleSubmit} onReset={onClose} loading={loading}>
                 <Row>
                     <Label htmlFor={id}>{label}</Label>
-                    <Field>
-                        <Input
-                            id={id}
-                            value={input}
-                            placeholder={placeholder}
-                            onChange={handleChange}
-                            autoFocus={true}
-                            readOnly={loading}
-                            required
-                        />
-                    </Field>
+                    <Field>{InputField}</Field>
                 </Row>
                 <Footer>
                     <ResetButton disabled={loading}>{cancel}</ResetButton>
@@ -62,6 +78,7 @@ const InputModal = ({
 };
 
 InputModal.propTypes = {
+    isTextArea: PropTypes.bool,
     input: PropTypes.string,
     onClose: PropTypes.func,
     label: PropTypes.string.isRequired,
@@ -75,6 +92,7 @@ InputModal.propTypes = {
 };
 
 InputModal.defaultProps = {
+    isTextArea: false,
     show: false,
     input: '',
     label: '',
