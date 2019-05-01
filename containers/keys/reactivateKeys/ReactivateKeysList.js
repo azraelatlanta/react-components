@@ -59,7 +59,7 @@ const getUploadStatus = ({ isUploaded, handleUpload }) => {
     );
 };
 
-const ReactivateKeysList = ({ loading, toReactivate, onUpload, onError }) => {
+const ReactivateKeysList = ({ loading, allToReactivate, onUpload, onError }) => {
     const [uploadFingerprint, setUploadFingerprint] = useState('');
     const selectRef = useRef();
 
@@ -83,7 +83,7 @@ const ReactivateKeysList = ({ loading, toReactivate, onUpload, onError }) => {
         onUpload(keysWithFingerprint[0]);
     };
 
-    const list = toReactivate.map(({ User, Address, keys }) => {
+    const list = allToReactivate.map(({ User, Address, keys }) => {
         const email = Address ? Address.Email : User.Name;
 
         return keys.map(({ Key, info, status, result }) => {
@@ -130,7 +130,7 @@ const ReactivateKeysList = ({ loading, toReactivate, onUpload, onError }) => {
 };
 
 ReactivateKeysList.propTypes = {
-    toReactivate: PropTypes.array.isRequired,
+    allToReactivate: PropTypes.array.isRequired,
     onUpload: PropTypes.func,
     loading: PropTypes.bool,
     onError: PropTypes.func

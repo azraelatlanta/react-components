@@ -64,7 +64,7 @@ const useKeysActions = ({
     const handleReactivate = ({ key, address }) => {
         const addressesKeysToReactivate = address ?
             [{ Address: address, inactiveKeys: [key], allKeys: addressesKeysMap[address.ID] }] :
-            [{ User, keys: [key], allKeys: userKeysList }];
+            [{ User, inactiveKeys: [key], allKeys: userKeysList }];
 
         const modal = (
             <ReactivateKeysModalProcess

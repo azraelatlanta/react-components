@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { c } from 'ttag';
 import { getAlgorithmExists } from 'proton-shared/lib/keys/keysAlgorithm';
 import { DEFAULT_ENCRYPTION_CONFIG, ENCRYPTION_CONFIGS } from 'proton-shared/lib/constants';
-import { Alert, useAuthenticationStore, useApi, Loader } from 'react-components';
+import { Alert, useEventManager, useAuthenticationStore, useApi, Loader } from 'react-components';
 
 import RenderModal from '../shared/RenderModal';
 import SelectAddress from '../shared/SelectAddress';
@@ -14,6 +14,7 @@ import createKeysManager from 'proton-shared/lib/keys/keysManager';
 const AddKeyModalProcess = ({ onSuccess, onClose, Addresses, addressesKeysMap }) => {
     const authenticationStore = useAuthenticationStore();
     const api = useApi();
+    const { call } = useEventManager();
 
     const [addressIndex, setAddressIndex] = useState(0);
     const [encryptionType, setEncryptionType] = useState(DEFAULT_ENCRYPTION_CONFIG);
@@ -50,6 +51,9 @@ const AddKeyModalProcess = ({ onSuccess, onClose, Addresses, addressesKeysMap })
                 encryptionConfig: config,
                 api
             });
+
+            // Trigger the event manager but no need to wait for it
+            call();
 
             setState({ ...state, newKey: info, step: 4 });
         } catch (e) {
@@ -88,8 +92,8 @@ const AddKeyModalProcess = ({ onSuccess, onClose, Addresses, addressesKeysMap })
             close: undefined // override the default close
         }),
         () => {
-            const fp = <code>{state.newKey.fingerprints[0]}</code>;
-            const success =  (<Alert>{c('Info').t`Key with fingerprint ${fp} created`}</Alert>);
+            const fp = <code key="0">{state.newKey.fingerprints[0]}</code>;
+            const success =  (<Alert>{c('Info').jt`Key with fingerprint ${fp} successfully created`}</Alert>);
             return {
                 title: c('Title').t`Key successfully created`,
                 container: success,

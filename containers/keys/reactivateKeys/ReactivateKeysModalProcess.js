@@ -9,15 +9,25 @@ import {
     Label,
     PasswordInput,
     useNotifications,
-    useAuthenticationStore
+    useAuthenticationStore,
+    useEventManager
 } from 'react-components';
 import { getKeySalts } from 'proton-shared/lib/api/keys';
 
-import ReactivateKeysList, { STATUS, convertStatus } from './ReactivateKeysList';
+import ReactivateKeysList, { STATUS } from './ReactivateKeysList';
 import RenderModal from '../shared/RenderModal';
 import DecryptFileKeyModal, { decrypt } from '../shared/DecryptFileKeyModal';
-import { createDecryptionError } from '../shared/DecryptionError';
 import createKeysManager from 'proton-shared/lib/keys/keysManager';
+
+import {
+    reducer,
+    gotoReactivateByPassword,
+    gotoReactivateByUpload,
+    gotoUploadAction,
+    gotoPasswordAction,
+    keyResultAction,
+    onKeyUploaded
+} from './reducer';
 
 const IntroStep = ({ children, onUpload }) => {
     const uploadButton = (<a key="0" onClick={onUpload}>{c('Info').t`uploading a backup key`}</a>);
@@ -70,7 +80,7 @@ const getInitialState = (addressesKeysToReactivate) => {
         throw new Error('Keys to reactivate needed');
     }
 
-    const toReactivate = addressesKeysToReactivate.map(({ User, Address, inactiveKeys, allKeys }) => {
+    const allToReactivate = addressesKeysToReactivate.map(({ User, Address, inactiveKeys, allKeys }) => {
         if (inactiveKeys.length === 0) {
             throw new Error('Keys to reactivate needed');
         }
@@ -87,196 +97,8 @@ const getInitialState = (addressesKeysToReactivate) => {
 
     return {
         step: 0,
-        toReactivate
+        allToReactivate
     };
-};
-
-const ACTION_TYPES = {
-    PASSWORD: 0,
-    UPLOAD: 1,
-    REACTIVATE_BY_PASSWORD: 2,
-    REACTIVATE_BY_UPLOAD: 3,
-    KEY_UPLOADED: 4,
-    KEY_RESULT: 5
-};
-
-const gotoPasswordAction = () => {
-    return { type: ACTION_TYPES.PASSWORD };
-};
-
-const gotoUploadAction = () => {
-    return { type: ACTION_TYPES.UPLOAD };
-};
-
-const gotoReactivateByPassword = (password, keySalts) => {
-    return { type: ACTION_TYPES.REACTIVATE_BY_PASSWORD, password, keySalts };
-};
-
-const gotoReactivateByUpload = () => {
-    return { type: ACTION_TYPES.REACTIVATE_BY_UPLOAD };
-};
-
-const onKeyUploaded = (fingerprint, decryptedPrivateKey) => {
-    return {
-        type: ACTION_TYPES.KEY_UPLOADED,
-        decryptedPrivateKey,
-        fingerprint
-    };
-};
-
-const keyResultAction = (status, result) => {
-    return {
-        type: ACTION_TYPES.KEY_RESULT,
-        result,
-        status
-    };
-};
-
-const updateKeys = (state, cb) => {
-    return {
-        ...state,
-        toReactivate: state.toReactivate.map((value) => {
-            const { keys } = value;
-            return {
-                ...value,
-                keys: keys.map(cb)
-            };
-        })
-    };
-};
-
-const reducer = (state, action) => {
-    if (action.type === ACTION_TYPES.PASSWORD) {
-        return {
-            ...state,
-            step: 2
-        };
-    }
-
-    if (action.type === ACTION_TYPES.UPLOAD) {
-        return {
-            ...state,
-            step: 1
-        };
-    }
-
-    if (action.type === ACTION_TYPES.KEY_UPLOADED) {
-        const { fingerprint: searchedFingerprint, decryptedPrivateKey } = action;
-
-        return updateKeys(state, (key) => {
-            const { info: { fingerprints: [fingerprint] } } = key;
-
-            if (fingerprint !== searchedFingerprint) {
-                return key;
-            }
-
-            return {
-                ...key,
-                decryptedPrivateKey,
-                status: STATUS.UPLOADED
-            };
-        });
-    }
-
-    if (action.type === ACTION_TYPES.REACTIVATE_BY_PASSWORD) {
-        if (!action.password || !action.keySalts) {
-            return;
-        }
-        return {
-            ...state,
-            step: 3,
-            password: action.password,
-            keySalts: action.keySalts,
-            mode: 'password',
-
-            addressIndex: 0,
-            keyIndex: 0
-        };
-    }
-
-    if (action.type === ACTION_TYPES.REACTIVATE_BY_UPLOAD) {
-        const onlyUploadedToReactivate = state.toReactivate.map((value) => {
-            const { keys } = value;
-            const uploadedKeys = keys.filter((key) => !!key.decryptedPrivateKey);
-            if (!uploadedKeys.length) {
-                return;
-            }
-            return {
-                ...value,
-                keys: uploadedKeys
-            };
-        }).filter(Boolean);
-
-        if (onlyUploadedToReactivate.length === 0) {
-            return {
-                ...state,
-                step: 3,
-                isDone: true,
-                toReactivate: onlyUploadedToReactivate,
-            }
-        }
-
-        return {
-            ...state,
-            step: 3,
-            mode: 'upload',
-            toReactivate: onlyUploadedToReactivate,
-            addressIndex: 0,
-            keyIndex: 0
-        };
-    }
-
-    if (action.type === ACTION_TYPES.KEY_RESULT) {
-        const { addressIndex, keyIndex } = state;
-        const { status, result } = action;
-
-        const toReactivate = state.toReactivate.map((value, i) => {
-            if (i !== addressIndex) {
-                return value;
-            }
-
-            const { keys } = value;
-
-            const newKeys = keys.map((key, j) => {
-                if (j !== keyIndex) {
-                    return key;
-                }
-
-                return {
-                    ...key,
-                    status,
-                    result
-                };
-            });
-
-            return {
-                ...value,
-                keys: newKeys,
-                isDone: keyIndex === newKeys.length - 1
-            };
-        });
-
-        const isAddressDone = toReactivate[addressIndex].isDone;
-        const isDone = isAddressDone && addressIndex === toReactivate.length - 1;
-
-        if (isDone) {
-            return {
-                ...state,
-                toReactivate,
-                isDone
-            }
-        }
-
-        return {
-            ...state,
-            toReactivate,
-            addressIndex: isAddressDone ? addressIndex + 1 : addressIndex,
-            keyIndex: isAddressDone ? 0 : keyIndex + 1,
-            isDone
-        };
-    }
-
-    return state;
 };
 
 const tryDecryptKey = async (keySalts, Key, password) => {
@@ -289,6 +111,8 @@ const ReactivateKeysModalProcess = ({ addressesKeysToReactivate, onSuccess, onCl
     const api = useApi();
     const authenticationStore = useAuthenticationStore();
     const { createNotification } = useNotifications();
+    const { call } = useEventManager();
+
     const keysManagerRef = useRef({});
     const [loadingKeySalts, setLoadingKeySalts] = useState(false);
 
@@ -305,9 +129,18 @@ const ReactivateKeysModalProcess = ({ addressesKeysToReactivate, onSuccess, onCl
         setModal();
     };
 
-    const reactivateKey = async ({ keysManager, Address, User, key }) => {
+    const {
+        step,
+        isDone,
+        key,
+        toReactivate,
+        allToReactivate,
+        mode,
+        keySalts
+    } = state;
+
+    const reactivateKey = async ({ keysManager, Address, User }) => {
         try {
-            const { mode, keySalts } = state;
             const oldPassword = password;
             const newPassword = authenticationStore.getPassword();
 
@@ -321,38 +154,40 @@ const ReactivateKeysModalProcess = ({ addressesKeysToReactivate, onSuccess, onCl
                 api
             });
 
-            dispatch(keyResultAction(STATUS.SUCCESS, 'ok'));
+            // Trigger the event manager when the process is done, but no need to wait because we keep local state.
+            call();
+
+            dispatch(keyResultAction(key, STATUS.SUCCESS, 'ok'));
         } catch (e) {
-            dispatch(keyResultAction(STATUS.ERROR, e));
+            dispatch(keyResultAction(key, STATUS.ERROR, e));
         }
     };
 
-    const { step, isDone, addressIndex, keyIndex, toReactivate } = state;
-
     useEffect(() => {
-        if (typeof addressIndex !== 'number' || typeof keyIndex !== 'number') {
+        if (!toReactivate || !key) {
             return;
         }
 
-        const { Address, User, keys, allKeys } = toReactivate[addressIndex];
+        const { Address, User, allKeys } = toReactivate;
 
-        if (keysManagerRef.current.addressIndex !== addressIndex) {
+        const currentID = Address ? Address.ID : User.ID;
+
+        if (keysManagerRef.current.ID !== currentID) {
             // While keys for the same address are being reactivated, the same keys manager needs to be used.
             keysManagerRef.current = {
-                addressIndex,
+                ID: currentID,
                 manager: createKeysManager(allKeys)
             };
         }
 
-        const key = keys[keyIndex];
-
+        // Process the next key in the queue.
         reactivateKey({
             Address,
             User,
             key,
             keysManager: keysManagerRef.current.manager
         });
-    }, [addressIndex, keyIndex]);
+    }, [toReactivate, key]);
 
     const currentStep = (() => {
         if (step === 0) {
@@ -360,7 +195,7 @@ const ReactivateKeysModalProcess = ({ addressesKeysToReactivate, onSuccess, onCl
                 title: c('Title').t`Re-activate keys`,
                 container: (
                     <IntroStep onUpload={() => dispatch(gotoUploadAction())}>
-                        <ReactivateKeysList toReactivate={toReactivate}/>
+                        <ReactivateKeysList allToReactivate={allToReactivate}/>
                     </IntroStep>
                 ),
                 submit: c('Action').t`Re-activate`,
@@ -396,7 +231,7 @@ const ReactivateKeysModalProcess = ({ addressesKeysToReactivate, onSuccess, onCl
                 title: c('Title').t`Upload backup keys`,
                 container: (
                     <UploadStep>
-                        <ReactivateKeysList toReactivate={toReactivate} onUpload={handleUpload} onError={handleError}/>
+                        <ReactivateKeysList allToReactivate={allToReactivate} onUpload={handleUpload} onError={handleError}/>
                     </UploadStep>
                 ),
                 submit: c('Action').t`Re-activate`,
@@ -435,7 +270,7 @@ const ReactivateKeysModalProcess = ({ addressesKeysToReactivate, onSuccess, onCl
             );
 
             // Handles the case where you don't upload any backup key and hit done.
-            if (toReactivate.length === 0 && isDone) {
+            if (allToReactivate.length === 0 && isDone) {
                 onClose();
             }
 
@@ -443,7 +278,7 @@ const ReactivateKeysModalProcess = ({ addressesKeysToReactivate, onSuccess, onCl
                 title: c('Title').t`Re-activate keys`,
                 container: (
                     <>
-                        <ReactivateKeysList loading={!isDone} toReactivate={toReactivate}/>
+                        <ReactivateKeysList loading={!isDone} allToReactivate={allToReactivate}/>
                         {info}
                     </>
                 ),
