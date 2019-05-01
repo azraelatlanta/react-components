@@ -9,33 +9,33 @@ import {
     ResetButton,
     PrimaryButton,
     useNotifications,
-    useApiWithoutResult
+    useApiWithoutResult,
+    useEventManager
 } from 'react-components';
-import { donate } from 'proton-shared/lib/api/payments';
-import { DEFAULT_CURRENCY, DEFAULT_DONATION_AMOUNT } from 'proton-shared/lib/constants';
+import { buyCredit } from 'proton-shared/lib/api/payments';
+import { DEFAULT_CURRENCY, DEFAULT_CREDITS_AMOUNT } from 'proton-shared/lib/constants';
 
 import PaymentSelector from './PaymentSelector';
 import Payment from './Payment';
 import usePayment from './usePayment';
 
-const DonateModal = ({ show, onClose }) => {
+const CreditsModal = ({ show, onClose }) => {
+    const { call } = useEventManager();
     const { method, setMethod, parameters, setParameters, canPay, setCardValidity } = usePayment(handleSubmit);
     const { createNotification } = useNotifications();
-    const { request, loading } = useApiWithoutResult(donate);
+    const { request, loading } = useApiWithoutResult(buyCredit);
     const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
-    const [amount, setAmount] = useState(DEFAULT_DONATION_AMOUNT);
+    const [amount, setAmount] = useState(DEFAULT_CREDITS_AMOUNT);
 
     const handleSubmit = async () => {
         await request({ Amount: amount, Currency: currency, ...parameters });
+        await call();
         onClose();
-        createNotification({
-            text: c('Success')
-                .t`Your support is essential to keeping ProtonMail running. Thank you for supporting internet privacy!`
-        });
+        createNotification({ text: c('Success').t`Credits added` });
     };
 
     return (
-        <Modal type="small" show={show} onClose={onClose} title={c('Title').t`Donate`}>
+        <Modal type="small" show={show} onClose={onClose} title={c('Title').t`Add credits`}>
             <ContentModal onSubmit={handleSubmit} onReset={onClose}>
                 <Label>{c('Label').t`Amount`}</Label>
                 <PaymentSelector
@@ -56,7 +56,7 @@ const DonateModal = ({ show, onClose }) => {
                 <FooterModal>
                     <ResetButton>{c('Action').t`Cancel`}</ResetButton>
                     {canPay ? (
-                        <PrimaryButton type="submit" loading={loading}>{c('Action').t`Donate`}</PrimaryButton>
+                        <PrimaryButton type="submit" loading={loading}>{c('Action').t`Top up`}</PrimaryButton>
                     ) : null}
                 </FooterModal>
             </ContentModal>
@@ -64,10 +64,9 @@ const DonateModal = ({ show, onClose }) => {
     );
 };
 
-DonateModal.propTypes = {
+CreditsModal.propTypes = {
     show: PropTypes.bool.isRequired,
-    onClose: PropTypes.func.isRequired,
-    onSubmit: PropTypes.func.isRequired
+    onClose: PropTypes.func.isRequired
 };
 
-export default DonateModal;
+export default CreditsModal;
