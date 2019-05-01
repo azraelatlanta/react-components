@@ -1,7 +1,7 @@
 import React, { useState, useRef, useReducer, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { c, msgid } from 'ttag';
-import { useNotifications, PrimaryButton } from 'react-components';
+import { useApi, useAuthenticationStore, useEventManager, useNotifications, PrimaryButton } from 'react-components';
 
 import SelectKeyFiles from '../shared/SelectKeyFiles';
 import SelectAddress from '../shared/SelectAddress';
@@ -10,19 +10,6 @@ import ImportWarning from './ImportWarning';
 import ImportKeysList, { STATUS, convertStatus } from './ImportKeysList';
 import selectFilesReducer, { filesSelected, keyDecrypted, cancelDecrypt, getInitialState as getInitialFilesState } from '../shared/selectFilesReducer';
 import DecryptFileKeyModal from '../shared/DecryptFileKeyModal';
-
-const getInitialState = (Addresses) => {
-    if (Addresses.length === 1) {
-        const address = Addresses[0];
-        return {
-            address,
-            step: 0
-        }
-    }
-    return {
-        step: 0
-    }
-};
 
 const getState = (files = [], results = {}) => {
     return files.map(({ info }) => {
@@ -34,15 +21,23 @@ const getState = (files = [], results = {}) => {
     })
 };
 
-const ImportKeyModalProcess = ({ Addresses, importKeys, onSuccess, onClose }) => {
-    const [state, setState] = useState(getInitialState(Addresses));
+const ImportKeyModalProcess = ({ Addresses, addressesKeysMap, onSuccess, onClose }) => {
+    const api = useApi();
+    const authenticationStore = useAuthenticationStore();
     const { createNotification } = useNotifications();
+    const { call } = useEventManager();
+
+    const [addressIndex, setAddressIndex] = useState(0);
+
+    const [state, setState] = useState(() => {
+        return Addresses.length === 1 ? { step: 1, address: Addresses[0] } : { step: 0 }
+    });
+
     const [processing, setProcessing] = useState(false);
     const selectRef = useRef();
     const [modal, setModal] = useState();
-    const [{ keyToDecrypt, done, keys }, dispatch] = useReducer(selectFilesReducer, undefined, getInitialFilesState);
+    const [{ keyToDecrypt, done, keys }, filesDispatch] = useReducer(selectFilesReducer, undefined, getInitialFilesState);
 
-    const [addressIndex, setAddressIndex] = useState(0);
     const { step, address } = state;
     const [list, setList] = useState([]);
 
@@ -87,10 +82,10 @@ const ImportKeyModalProcess = ({ Addresses, importKeys, onSuccess, onClose }) =>
                 fingerprint={fingerprint}
                 armoredPrivateKey={armoredPrivateKey}
                 onSuccess={(decryptedPrivateKey) => {
-                    dispatch(keyDecrypted({ fingerprint, decryptedPrivateKey }));
+                    filesDispatch(keyDecrypted({ fingerprint, decryptedPrivateKey }));
                 }}
                 onClose={() => {
-                    dispatch(cancelDecrypt(fingerprint));
+                    filesDispatch(cancelDecrypt(fingerprint));
                 }}
             />
         );
@@ -103,7 +98,7 @@ const ImportKeyModalProcess = ({ Addresses, importKeys, onSuccess, onClose }) =>
         if (files.length === 0) {
             return handleError(c('Error').t`Invalid private key file`);
         }
-        dispatch(filesSelected(files));
+        filesDispatch(filesSelected(files));
     };
 
     const currentStep = [
@@ -154,8 +149,8 @@ const ImportKeyModalProcess = ({ Addresses, importKeys, onSuccess, onClose }) =>
 ImportKeyModalProcess.propTypes = {
     onSuccess: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired,
-    importKeys: PropTypes.func.isRequired,
-    Addresses: PropTypes.array.isRequired
+    Addresses: PropTypes.array.isRequired,
+    addressesKeysMap: PropTypes.object.isRequired
 };
 
 export default ImportKeyModalProcess;

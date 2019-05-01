@@ -113,7 +113,6 @@ const ReactivateKeysModalProcess = ({ addressesKeysToReactivate, onSuccess, onCl
     const { createNotification } = useNotifications();
     const { call } = useEventManager();
 
-    const keysManagerRef = useRef({});
     const [loadingKeySalts, setLoadingKeySalts] = useState(false);
 
     const [state, dispatch] = useReducer(reducer, undefined, () => getInitialState(addressesKeysToReactivate));
@@ -132,62 +131,47 @@ const ReactivateKeysModalProcess = ({ addressesKeysToReactivate, onSuccess, onCl
     const {
         step,
         isDone,
-        key,
-        toReactivate,
         allToReactivate,
         mode,
         keySalts
     } = state;
 
-    const reactivateKey = async ({ keysManager, Address, User }) => {
-        try {
-            const oldPassword = password;
-            const newPassword = authenticationStore.getPassword();
+    const startProcess = async () => {
+        const newPassword = authenticationStore.getPassword();
+        const oldPassword = password;
 
-            const decryptedPrivateKey = mode === 'upload' ? key.decryptedPrivateKey : await tryDecryptKey(keySalts, key.Key, oldPassword);
+        for (const { User, Address, allKeys, keys } of allToReactivate) {
+            const keysManager = createKeysManager(allKeys);
 
-            await keysManager.reactivateKey({
-                Address,
-                User,
-                password: newPassword,
-                oldDecryptedPrivateKey: decryptedPrivateKey,
-                api
-            });
+            for (const key of keys) {
+                try {
+                    const decryptedPrivateKey = mode === 'upload' ? key.decryptedPrivateKey : await tryDecryptKey(keySalts, key.Key, oldPassword);
 
-            // Trigger the event manager when the process is done, but no need to wait because we keep local state.
-            call();
+                    await keysManager.reactivateKey({
+                        Address,
+                        User,
+                        password: newPassword,
+                        oldDecryptedPrivateKey: decryptedPrivateKey,
+                        api
+                    });
 
-            dispatch(keyResultAction(key, STATUS.SUCCESS, 'ok'));
-        } catch (e) {
-            dispatch(keyResultAction(key, STATUS.ERROR, e));
+                    // Trigger the event manager, but no need to wait because we keep local state.
+                    call();
+
+                    dispatch(keyResultAction(key.Key.ID, STATUS.SUCCESS, 'ok'));
+                } catch (e) {
+                    dispatch(keyResultAction(key.Key.ID, STATUS.ERROR, e));
+                }
+            }
         }
     };
 
     useEffect(() => {
-        if (!toReactivate || !key) {
+        if (step !== 3) {
             return;
         }
-
-        const { Address, User, allKeys } = toReactivate;
-
-        const currentID = Address ? Address.ID : User.ID;
-
-        if (keysManagerRef.current.ID !== currentID) {
-            // While keys for the same address are being reactivated, the same keys manager needs to be used.
-            keysManagerRef.current = {
-                ID: currentID,
-                manager: createKeysManager(allKeys)
-            };
-        }
-
-        // Process the next key in the queue.
-        reactivateKey({
-            Address,
-            User,
-            key,
-            keysManager: keysManagerRef.current.manager
-        });
-    }, [toReactivate, key]);
+        startProcess();
+    }, [step]);
 
     const currentStep = (() => {
         if (step === 0) {

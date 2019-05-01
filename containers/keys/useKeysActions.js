@@ -4,6 +4,7 @@ import { KEY_FILE_EXTENSION } from 'proton-shared/lib/constants';
 import ExportKeyModal from './exportKey/ExportKeyModal';
 import ReactivateKeysModalProcess from './reactivateKeys/ReactivateKeysModalProcess';
 import AddKeyModalProcess from './addKey/AddKeyModalProcess';
+import ImportKeyModalProcess from './importKeys/ImportKeyModalProcess';
 
 export const ACTIONS = {
     PRIMARY: 1,

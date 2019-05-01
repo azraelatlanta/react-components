@@ -33,10 +33,10 @@ export const onKeyUploaded = (fingerprint, decryptedPrivateKey) => {
     };
 };
 
-export const keyResultAction = (key, status, result) => {
+export const keyResultAction = (keyID, status, result) => {
     return {
         type: ACTION_TYPES.KEY_RESULT,
-        key,
+        keyID,
         result,
         status
     };
@@ -54,34 +54,6 @@ export const updateKeys = (state, cb) => {
         })
     };
 };
-
-const getReactivate = (allToReactivate) => {
-    if (allToReactivate.length === 0) {
-        return {
-            isDone: true
-        }
-    }
-
-    // Find the first item where there is a key that does not have a result
-    const toReactivate = allToReactivate.find(({ keys }) => {
-        return keys.some(({ result }) => !result);
-    });
-
-    if (!toReactivate) {
-        return {
-            isDone: true
-        }
-    }
-
-    const key = toReactivate.keys.find(({ result }) => !result);
-
-    return {
-        toReactivate,
-        key,
-        isDone: false
-    };
-};
-
 
 export const reducer = (state, action) => {
     if (action.type === ACTION_TYPES.PASSWORD) {
@@ -129,8 +101,6 @@ export const reducer = (state, action) => {
             password: action.password,
             keySalts: action.keySalts,
             mode: 'password',
-
-            ...getReactivate(state.allToReactivate)
         };
     }
 
@@ -152,46 +122,24 @@ export const reducer = (state, action) => {
             ...state,
             step: 3,
             mode: 'upload',
-            allToReactivate: onlyUploadedToReactivate,
-            ...getReactivate(onlyUploadedToReactivate)
+            allToReactivate: onlyUploadedToReactivate
         };
     }
 
-    // Update the current key being processed with a new result, and check the done state.
+    // Update the key being processed with a new result.
     if (action.type === ACTION_TYPES.KEY_RESULT) {
-        const { status, result, key: targetKey } = action;
+        const { status, result, keyID: targetKeyID } = action;
 
-        const allToReactivate = state.allToReactivate.map((value) => {
-            const { keys } = value;
-
-            const keyIndex = keys.findIndex((key) => key === targetKey);
-
-            if (keyIndex === -1) {
-                return value;
+        return updateKeys(state, (key) => {
+            if (key.Key.ID !== targetKeyID) {
+                return key;
             }
-
-            const newKeys = keys.map((key) => {
-                if (key !== targetKey) {
-                    return key;
-                }
-                return {
-                    ...key,
-                    status,
-                    result
-                };
-            });
-
             return {
-                ...value,
-                keys: newKeys
+                ...key,
+                status,
+                result
             };
         });
-
-        return {
-            ...state,
-            allToReactivate,
-            ...getReactivate(allToReactivate)
-        };
     }
 
     return state;
