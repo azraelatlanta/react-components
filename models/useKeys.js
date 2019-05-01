@@ -1,11 +1,6 @@
 import { useCache, useAuthenticationStore } from 'react-components';
 import { prepareKeys } from 'proton-shared/lib/keys/keys';
 import { useUser } from './userModel';
-import { useLayoutEffect, useCallback, useEffect, useRef, useState } from 'react';
-import { STATUS } from 'proton-shared/lib/models/cache';
-
-
-
 
 const useGetKeys = () => {
     const cache = useCache();

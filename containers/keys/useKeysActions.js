@@ -1,7 +1,9 @@
 import React from 'react';
+import { KEY_FILE_EXTENSION } from 'proton-shared/lib/constants';
+
 import ExportKeyModal from './exportKey/ExportKeyModal';
 import ReactivateKeysModalProcess from './reactivateKeys/ReactivateKeysModalProcess';
-import { KEY_FILE_EXTENSION } from 'proton-shared/lib/constants';
+import AddKeyModalProcess from './addKey/AddKeyModalProcess';
 
 export const ACTIONS = {
     PRIMARY: 1,
@@ -38,7 +40,7 @@ const useKeysActions = ({
 
     const getKey = (addressID, keyID) => {
         return addressID ?
-            addressesKeysMap[addressID].find(({ ID }) => ID === keyID) :
+            addressesKeysMap[addressID].find(({ Key: { ID } }) => ID === keyID) :
             userKeysList.find(({ Key: { ID } }) => ID === keyID);
     };
 
@@ -60,23 +62,39 @@ const useKeysActions = ({
     };
 
     const handleReactivate = ({ key, address }) => {
+        const addressesKeysToReactivate = address ?
+            [{ Address: address, inactiveKeys: [key], allKeys: addressesKeysMap[address.ID] }] :
+            [{ User, keys: [key], allKeys: userKeysList }];
+
         const modal = (
             <ReactivateKeysModalProcess
                 onSuccess={resetModal}
                 onClose={resetModal}
-                addressesKeysToReactivate={[{ Address: address, keys: [key] }]}
+                addressesKeysToReactivate={addressesKeysToReactivate}
             />
         );
         setModal(modal);
     };
 
-    const handleAddKey = async () => {
-        const modal = (<AddKeyModalProcess onSuccess={onSuccess} onClose={resetModal}/>);
+    const handleAddKey = () => {
+        const modal = (
+            <AddKeyModalProcess
+                onSuccess={resetModal}
+                onClose={resetModal}
+                Addresses={Addresses}
+                addressesKeysMap={addressesKeysMap}
+            />);
         setModal(modal);
     };
 
     const handleImportKeys = () => {
-        const modal = (<ImportKeyModalProcess onSuccess={resetModal} onClose={resetModal}/>);
+        const modal = (
+            <ImportKeyModalProcess
+                onSuccess={resetModal}
+                onClose={resetModal}
+                Addresses={Addresses}
+                addressesKeysMap={addressesKeysMap}
+            />);
         setModal(modal);
     };
 
@@ -86,6 +104,8 @@ const useKeysActions = ({
                 onSuccess={resetModal}
                 onClose={resetModal}
                 addressesKeysToReactivate={addressesKeysToReactivate}
+                addressesKeysMap={addressesKeysMap}
+                userKeysList={userKeysList}
             />
         );
 

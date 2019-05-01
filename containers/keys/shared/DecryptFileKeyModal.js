@@ -18,13 +18,13 @@ export const decrypt = async ({ password, keySalt, armoredPrivateKey }) => {
     const keyPassword = keySalt ? await computeKeyPassword(password, keySalt) : password;
     return decryptPrivateKey(armoredPrivateKey, keyPassword)
         .catch(() => {
-            throw new createDecryptionError();
+            throw createDecryptionError();
         });
 };
 
 const DecryptFileKeyModal = ({ fingerprint, armoredPrivateKey, onSuccess, onClose }) => {
     const id = generateUID('decryptKey');
-    const fingerprintCode = (<code>{fingerprint}</code>);
+    const fingerprintCode = (<code key="0">{fingerprint}</code>);
     const label = c('Label').jt`Enter the password for key with fingerprint: ${fingerprintCode}`;
 
     const [password, setPassword] = useState('');

@@ -74,7 +74,6 @@ const useCachedAsyncResult = (key, miss, dependencies) => {
                 if (oldRecord.promise !== promise) {
                     return;
                 }
-                console.log('resolved value', key, record)
                 cache.set(key, record);
                 dispatch(getState(record));
             });

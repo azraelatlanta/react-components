@@ -10,7 +10,7 @@ import {
 
 const SelectAddress = ({ Addresses, addressIndex, setAddressIndex }) => {
     const label = c('Title').t`Select address`;
-    const notificationText = c('Alert').t`Select an address to which the new key will be attached`;
+    const alertText = c('Alert').t`Select an address to which the new key will be attached`;
 
     const options = Addresses.map((address, i) => ({
         text: address.Email,
@@ -21,14 +21,14 @@ const SelectAddress = ({ Addresses, addressIndex, setAddressIndex }) => {
 
     return (
         <>
-            <Alert>{notificationText}</Alert>
+            <Alert>{alertText}</Alert>
             <Label htmlFor={selectId}>{label}</Label>
             <Field>
                 <Select
                     id={selectId}
                     value={addressIndex}
                     options={options}
-                    onChange={({ target }) => setAddressIndex(target.value)}
+                    onChange={({ target }) => setAddressIndex(+target.value)}
                 />
             </Field>
         </>

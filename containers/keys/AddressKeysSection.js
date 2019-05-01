@@ -1,12 +1,11 @@
-import React, { useMemo, useState, useLayoutEffect } from 'react';
-import { c } from 'ttag';
+import React, { useMemo, useState } from 'react';
 
 import { useCachedAsyncResult } from 'react-components';
 import AddressKeysHeader from './addressesKeysHeader/AddressKeysHeader';
-import AddressKeysHeaderActions, { getHeaderActions } from './addressesKeysHeader/AddressKeysHeaderActions';
+import AddressKeysHeaderActions from './addressesKeysHeader/AddressKeysHeaderActions';
 import ContactKeysHeader from './ContactKeysHeader';
 import AddressKeysTable from './AddressKeysTable';
-import { getAddressesKeys, getAddressKeysList, getKeyHeaderActions, getUserKeysList } from './AddressKeysSectionModel';
+import { getAddressKeysList, getKeyHeaderActions, getUserKeysList } from './AddressKeysSectionModel';
 import useGetKeys from '../../models/useKeys';
 import { useUser } from '../../models/userModel';
 import { useAddresses } from '../../models/addressesModel';
@@ -41,8 +40,9 @@ const AddressKeysSection = () => {
 
     const formattedAddressesKeys = useMemo(() => {
         const addresses = Addresses || [];
-        return addresses.reduce((acc, { ID }) => {
-            acc[ID] = getAddressKeysList(User, Addresses, addressesKeysMap[ID]);
+        return addresses.reduce((acc, Address) => {
+            const { ID } = Address;
+            acc[ID] = getAddressKeysList(User, Address, addressesKeysMap[ID]);
             return acc;
         }, {});
     }, [addressesKeysMap]);

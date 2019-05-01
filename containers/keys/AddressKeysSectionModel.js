@@ -163,43 +163,34 @@ export const getAddressKeysList = (User, Address, addressKeys = []) => {
     });
 };
 
-export const getAddressesKeys = (User, Addresses = [], addressesKeys = {}) => {
-    return Addresses.reduce((acc, Address) => {
-        const { ID, Email } = Address;
-
-        const addressKeysList = getAddressKeysList(User, Address, addressesKeys[ID]);
-
-        const formattedAddress = {
-            email: Email,
-            keys: addressKeysList
-        };
-
-        acc.push(formattedAddress);
-
-        return acc;
-    }, []);
-};
-
-
 const getKeysToReactivate = (keys = []) => {
     return keys.filter(({ decryptedPrivateKey }) => !decryptedPrivateKey);
 };
 
-const concatKeys = (arr, value) => {
-    if (!value.keys.length) {
-        return arr;
-    }
-    return arr.concat(value);
-};
-
 export const getAddressesKeysToReactivate = ({ Addresses, addressesKeysMap, User, userKeysList }) => {
-    const allAddressesKeys = Addresses.reduce((acc, Address) => {
+    const allAddressesKeys = Addresses.map((Address) => {
         const { ID } = Address;
-        const addressKeysToReactivate = getKeysToReactivate(addressesKeysMap[ID]);
-        return concatKeys(acc, { Address, keys: addressKeysToReactivate });
-    }, []);
+        const keysList = addressesKeysMap[ID];
+        const addressKeysToReactivate = getKeysToReactivate(keysList);
+        if (!addressKeysToReactivate.length) {
+            return
+        }
+        return {
+            Address,
+            allKeys: keysList,
+            inactiveKeys: addressKeysToReactivate
+        };
+    });
 
-    const allUserKeys = { User, keys: getKeysToReactivate(userKeysList) };
-    return concatKeys(allAddressesKeys, allUserKeys);
+    const userKeysToReactivate = getKeysToReactivate(userKeysList);
+
+    return [
+        ...allAddressesKeys,
+        userKeysToReactivate.length && {
+            User,
+            allKeys: userKeysList,
+            inactiveKeys: userKeysToReactivate
+        }
+    ].filter(Boolean);
 };
 

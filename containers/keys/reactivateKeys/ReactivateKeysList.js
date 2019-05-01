@@ -18,55 +18,48 @@ import KeysStatus, { STATUSES } from '../KeysStatus';
 
 export const STATUS = {
     INACTIVE: 1,
-    SUCCESS: 2,
-    LOADING: 3,
-    ERROR: 4
-};
-
-export const convertStatus = (keyResult, defaultStatus) => {
-    if (typeof keyResult === 'undefined') {
-        return {
-            status: defaultStatus
-        };
-    }
-    if (keyResult instanceof Error) {
-        if (keyResult.name === 'DecryptionError') {
-            return {
-                status: STATUS.INACTIVE
-            }
-        }
-        return {
-            error: keyResult.message,
-            status: STATUS.ERROR
-        };
-    }
-    return {
-        status: STATUS.SUCCESS
-    }
+    UPLOADED: 2,
+    SUCCESS: 3,
+    LOADING: 4,
+    ERROR: 5
 };
 
 const KeyStatusError = (error) => {
     return {
-        tooltip: error,
+        tooltip: error.message,
         title: c('Key state badge').t`Error`,
         type: 'error'
-    }
+    };
 };
 
-const getStatus = (status, error) => {
+const getStatus = (status, result) => {
     if (status === STATUS.ERROR) {
-        return <BadgeWithTooltip {...KeyStatusError(error)}/>
+        return <BadgeWithTooltip {...KeyStatusError(result)}/>;
     }
-    if (status === STATUS.INACTIVE || status === STATUS.ERROR) {
-        return <KeysStatus statuses={[STATUSES.ENCRYPTED]} />;
+    if (status === STATUS.INACTIVE || status === STATUS.UPLOADED) {
+        return <KeysStatus statuses={[STATUSES.ENCRYPTED]}/>;
     }
     if (status === STATUS.SUCCESS) {
-        return <KeysStatus statuses={[STATUSES.DECRYPTED]} />;
+        return <KeysStatus statuses={[STATUSES.DECRYPTED]}/>;
     }
-    return <LoaderIcon/>
 };
 
-const ReactivateKeysList = ({ keys, onUpload, onError }) => {
+const getUploadStatus = ({ isUploaded, handleUpload }) => {
+    if (isUploaded) {
+        return (
+            <Badge type="success">
+                {c('Action').t`Key uploaded`}
+            </Badge>
+        );
+    }
+    return (
+        <Button onClick={handleUpload}>
+            {c('Action').t`Upload`}
+        </Button>
+    );
+};
+
+const ReactivateKeysList = ({ loading, toReactivate, onUpload, onError }) => {
     const [uploadFingerprint, setUploadFingerprint] = useState('');
     const selectRef = useRef();
 
@@ -82,7 +75,7 @@ const ReactivateKeysList = ({ keys, onUpload, onError }) => {
             return onError(c('Error').t`Invalid private key file`);
         }
 
-        const keysWithFingerprint = files.filter(({ info: { fingerprints: [fingerprint]} }) => fingerprint === uploadFingerprint);
+        const keysWithFingerprint = files.filter(({ info: { fingerprints: [fingerprint] } }) => fingerprint === uploadFingerprint);
         if (keysWithFingerprint.length === 0) {
             return onError(c('Error').t`Uploaded key does not match fingerprint`);
         }
@@ -90,56 +83,56 @@ const ReactivateKeysList = ({ keys, onUpload, onError }) => {
         onUpload(keysWithFingerprint[0]);
     };
 
-    const list = keys.map(({ status, fingerprint, email, isUploaded, error }, i) => {
-        const keyStatus = getStatus(status, error);
+    const list = toReactivate.map(({ User, Address, keys }) => {
+        const email = Address ? Address.Email : User.Name;
 
-        const getUploadStatus = () => {
-            if (isUploaded) {
-                return (
-                    <Badge type="success">
-                        {c('Action').t`Key uploaded`}
-                    </Badge>
-                );
-            }
+        return keys.map(({ Key, info, status, result }) => {
+            const [fingerprint] = info.fingerprints;
+
+            const keyStatus = loading && !result ? <LoaderIcon/> : getStatus(status, result);
+
             return (
-                <Button onClick={() => handleUpload(fingerprint)}>
-                    {c('Action').t`Upload`}
-                </Button>
+                <TableRow
+                    key={Key.ID}
+                    cells={[
+                        <span className="mw100 inbl ellipsis">{email}</span>,
+                        <code className="mw100 inbl ellipsis">{fingerprint}</code>,
+                        keyStatus,
+                        isUpload ? getUploadStatus({
+                            handleUpload: () => handleUpload(fingerprint),
+                            isUploaded: status === STATUS.UPLOADED
+                        }) : null
+                    ].filter(Boolean)}
+                />
             );
-        };
-
-        return (
-            <TableRow
-                key={i}
-                cells={[
-                    <span className="mw100 inbl ellipsis">{email}</span>,
-                    <span className="mw100 inbl ellipsis">{fingerprint}</span>,
-                    keyStatus,
-                    isUpload ? getUploadStatus() : null
-                ].filter(Boolean)}
-            />
-        );
-    });
+        });
+    }).flat(); // TODO: Verify this works with polyfill on edge?
 
     return (
-        <Table>
-            <TableHeader
-                cells={[
-                    c('Title header for keys table').t`Email`,
-                    c('Title header for keys table').t`Fingerprint`,
-                    c('Title header for keys table').t`Status`,
-                    isUpload ? c('Title header for keys table').t`Action` : null
-                ].filter(Boolean)}
-            />
-            { isUpload ? <SelectKeyFiles ref={selectRef} multiple={false} onFiles={handleFiles} autoClick={false}/> : null }
-            <TableBody>{list}</TableBody>
-        </Table>
+        <>
+            {isUpload ?
+                <SelectKeyFiles ref={selectRef} multiple={false} onFiles={handleFiles} autoClick={false}/> : null}
+            <Table>
+                <TableHeader
+                    cells={[
+                        c('Title header for keys table').t`Email`,
+                        c('Title header for keys table').t`Fingerprint`,
+                        c('Title header for keys table').t`Status`,
+                        isUpload ? c('Title header for keys table').t`Action` : null
+                    ].filter(Boolean)}
+                />
+                <TableBody>
+                    {list}
+                </TableBody>
+            </Table>
+        </>
     );
 };
 
 ReactivateKeysList.propTypes = {
-    keys: PropTypes.array.isRequired,
+    toReactivate: PropTypes.array.isRequired,
     onUpload: PropTypes.func,
+    loading: PropTypes.bool,
     onError: PropTypes.func
 };
 

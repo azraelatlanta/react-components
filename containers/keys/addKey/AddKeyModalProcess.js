@@ -1,59 +1,74 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { c } from 'ttag';
 import { getAlgorithmExists } from 'proton-shared/lib/keys/keysAlgorithm';
-
 import { DEFAULT_ENCRYPTION_CONFIG, ENCRYPTION_CONFIGS } from 'proton-shared/lib/constants';
+import { Alert, useAuthenticationStore, useApi, Loader } from 'react-components';
 
 import RenderModal from '../shared/RenderModal';
 import SelectAddress from '../shared/SelectAddress';
 import SelectEncryption from './SelectEncryption';
 import SimilarKeyWarning from './SimilarKeyWarning';
+import createKeysManager from 'proton-shared/lib/keys/keysManager';
 
-const getInitialState = (Addresses) => {
-    if (Addresses.length === 1) {
-        const address = Addresses[0];
-        return {
-            address,
-            step: 1
-        }
-    }
-
-    return {
-        step: 0
-    }
-};
-
-const AddKeyModalProcess = ({ onSuccess, onClose, Addresses, addressesKeys }) => {
-    const [state, setState] = useState(getInitialState(Addresses));
+const AddKeyModalProcess = ({ onSuccess, onClose, Addresses, addressesKeysMap }) => {
+    const authenticationStore = useAuthenticationStore();
+    const api = useApi();
 
     const [addressIndex, setAddressIndex] = useState(0);
     const [encryptionType, setEncryptionType] = useState(DEFAULT_ENCRYPTION_CONFIG);
 
-    const { step, address, encryption } = state;
+    const [state, setState] = useState(() => {
+        return Addresses.length === 1 ? { step: 1, address: Addresses[0] } : { step: 0 }
+    });
 
     const handleSelectEncryption = () => {
-        const { ID } = address;
+        const { address } = state;
 
-        const addressKeys = Object.values(addressesKeys[ID]);
-        const addressKeysAlgorithms = addressKeys.map(({ info: { algorithmInfo } }) => algorithmInfo);
+        const addressKeysList = addressesKeysMap[address.ID];
+        const addressKeysAlgorithms = addressKeysList.map(({ info: { algorithmInfo } }) => algorithmInfo);
 
-        const encryption = { type: encryptionType, config: ENCRYPTION_CONFIGS[encryptionType] };
-        const algorithmExists = getAlgorithmExists(addressKeysAlgorithms, encryption.config);
+        const encryptionConfig = ENCRYPTION_CONFIGS[encryptionType];
+        const encryption = { type: encryptionType, config: encryptionConfig };
 
-        setState({
-            ...state,
-            encryption,
-            step: algorithmExists ? 2 : 3
-        });
+        const algorithmExists = getAlgorithmExists(addressKeysAlgorithms, encryptionConfig);
+
+        setState({ ...state, encryption, step: algorithmExists ? 2 : 3 });
     };
 
-    const currentStep = [
+    const generateKey = async () => {
+        const { address, encryption: { config } } = state;
+
+        const addressKeysList = addressesKeysMap[address.ID];
+
+        const keysManager = createKeysManager(addressKeysList);
+
+        try {
+            const { info } = await keysManager.createAddressKey({
+                Address: address,
+                password: authenticationStore.getPassword(),
+                encryptionConfig: config,
+                api
+            });
+
+            setState({ ...state, newKey: info, step: 4 });
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    useEffect(() => {
+        if (state.step === 3) {
+            generateKey();
+        }
+    }, [state.step]);
+
+    const currentModalProps = [
         () => ({
             title: c('Title').t`Select address`,
             container: <SelectAddress Addresses={Addresses} addressIndex={addressIndex} setAddressIndex={setAddressIndex} />,
             submit: c('Action').t`Select address`,
-            onSubmit: () => setState({ address: Addresses[addressIndex], step: 1 })
+            onSubmit: () => setState({ ...state, address: Addresses[addressIndex], step: 1 })
         }),
         () => ({
             title: c('Title').t`Select configuration`,
@@ -65,29 +80,34 @@ const AddKeyModalProcess = ({ onSuccess, onClose, Addresses, addressesKeys }) =>
             title: c('Title').t`Similar key already active`,
             container: (<SimilarKeyWarning/>),
             submit: c('Action').t`Yes`,
-            onSubmit: () => {
-                const nextState ={ ...state, step: 3 };
-                setState(nextState);
-                onSuccess(nextState);
-            }
+            onSubmit: () => setState({ ...state, step: 3 })
         }),
         () => ({
-            title: c('Title').t`Generating ${encryption.type} key`,
-            container: (<div>Loading...</div>),
-            close: undefined
+            title: c('Title').t`Generating ${state.encryption.type} key`,
+            container: (<Loader/>),
+            close: undefined // override the default close
         }),
-    ][step]();
+        () => {
+            const fp = <code>{state.newKey.fingerprints[0]}</code>;
+            const success =  (<Alert>{c('Info').t`Key with fingerprint ${fp} created`}</Alert>);
+            return {
+                title: c('Title').t`Key successfully created`,
+                container: success,
+                onSubmit: onSuccess
+            }
+        },
+    ][state.step]();
 
     const close = c('Action').t`Close`;
 
-    return <RenderModal onClose={onClose} close={close} {...currentStep}/>;
+    return <RenderModal onClose={onClose} close={close} {...currentModalProps}/>;
 };
 
 AddKeyModalProcess.propTypes = {
     onSuccess: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired,
     Addresses: PropTypes.array.isRequired,
-    addressesKeys: PropTypes.object.isRequired,
+    addressesKeysMap: PropTypes.object.isRequired,
 };
 
 export default AddKeyModalProcess;

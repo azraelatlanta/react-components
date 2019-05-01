@@ -19,9 +19,9 @@ const getWarning = (encryptionType) => {
 };
 
 const SelectEncryption = ({ encryptionType, setEncryptionType }) => {
-    const highSecurity = <strong key="1">${c('encryption').t`High security`}</strong>;
-    const highestSecurity = <strong key="2">${c('encryption').t`Highest security`}</strong>;
-    const stateOfTheArt = <strong key="3">${c('encryption').t`State of the art`}</strong>;
+    const highSecurity = <strong key="1">{c('encryption').t`High security`}</strong>;
+    const highestSecurity = <strong key="2">{c('encryption').t`Highest security`}</strong>;
+    const stateOfTheArt = <strong key="3">{c('encryption').t`State of the art`}</strong>;
 
     const radios = [
         {

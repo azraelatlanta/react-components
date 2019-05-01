@@ -3,7 +3,6 @@ import { c } from 'ttag';
 import PropTypes from 'prop-types';
 import { Block, PrimaryButton, Button } from 'react-components';
 
-import { getAddressesKeysToReactivate } from '../AddressKeysSectionModel';
 import { ACTIONS } from '../useKeysActions';
 
 
@@ -16,7 +15,7 @@ const KeyActionImport = ({ cb }) => (
 );
 
 const KeyActionReactivateAll = ({ cb, addressesKeysToReactivate }) => {
-    const total = addressesKeysToReactivate.reduce((acc, { keys }) => keys.length + acc, 0);
+    const total = addressesKeysToReactivate.reduce((acc, { inactiveKeys }) => inactiveKeys.length + acc, 0);
     return (
         <Button onClick={cb}>{c('Action').t`Reactivate keys`} ({total})</Button>
     );

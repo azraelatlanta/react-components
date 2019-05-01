@@ -7,7 +7,7 @@ const KeysRow = ({ fingerprint, type, status, actions }) => {
         <TableRow
             key={fingerprint}
             cells={[
-                <span className="mw100 inbl ellipsis">{fingerprint}</span>,
+                <code className="mw100 inbl ellipsis">{fingerprint}</code>,
                 type,
                 status,
                 actions
